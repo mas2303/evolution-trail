@@ -539,23 +539,48 @@
             const ctx = document.getElementById('weeklyChart');
             if(!ctx) return;
 
-            // Grouper par semaine (ISO Week simplifié)
+            if (sessions.length === 0) return;
+
+            // 1. Trouver la date de la toute première séance pour définir le "S1"
+            // On copie et on trie par date croissante (du plus vieux au plus récent)
+            const sorted = [...sessions].sort((a, b) => new Date(a.date) - new Date(b.date));
+            const firstDate = new Date(sorted[0].date);
+            
+            // On se cale sur le Lundi de cette première semaine pour être propre
+            const day = firstDate.getDay();
+            const diff = firstDate.getDate() - day + (day === 0 ? -6 : 1); 
+            const startOfPlan = new Date(firstDate.setDate(diff));
+            startOfPlan.setHours(0,0,0,0);
+
+            // 2. Grouper les km par semaine relative (S1, S2, etc.)
             const weeks = {};
+            let maxWeekNum = 0;
+
             sessions.forEach(s => {
                 const d = new Date(s.date);
-                // Clé de semaine simple "YYYY-Www"
-                const startOfYear = new Date(d.getFullYear(), 0, 1);
-                const pastDays = (d - startOfYear) / 86400000;
-                const weekNum = Math.ceil((pastDays + startOfYear.getDay() + 1) / 7);
-                const key = `S${weekNum}`;
+                d.setHours(0,0,0,0);
                 
-                if(!weeks[key]) weeks[key] = 0;
-                weeks[key] += parseFloat(s.km);
+                // Calcul du numéro de semaine relatif
+                const diffTime = d - startOfPlan;
+                const weekNum = Math.floor(diffTime / (1000 * 60 * 60 * 24 * 7)) + 1;
+                
+                if (weekNum > 0) {
+                    const key = `S${weekNum}`;
+                    if(!weeks[key]) weeks[key] = 0;
+                    weeks[key] += parseFloat(s.km);
+                    if (weekNum > maxWeekNum) maxWeekNum = weekNum;
+                }
             });
 
-            // Trier les semaines et prendre les 8 dernières
-            const labels = Object.keys(weeks).sort(); // Simplifié
-            const data = labels.map(k => weeks[k]);
+            // 3. Remplir les données (en bouchant les trous avec des 0)
+            const labels = [];
+            const data = [];
+
+            // On affiche toutes les semaines de S1 jusqu'à la dernière connue
+            for(let i = 1; i <= maxWeekNum; i++) {
+                labels.push(`S${i}`);
+                data.push(weeks[`S${i}`] || 0);
+            }
 
             if (weeklyChart) weeklyChart.destroy();
 
