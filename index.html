@@ -42,7 +42,7 @@
             <div>
                 <h1 class="text-2xl font-black italic tracking-tighter uppercase">Road to <span class="text-blue-600">GT85</span></h1>
                 <div class="flex items-center gap-2">
-                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">v3.6 Chrono</span>
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">v3.7 Fix</span>
                     <span id="header-user-id" class="text-[9px] bg-slate-100 px-1 rounded text-slate-400 font-mono">ID: ...</span>
                 </div>
             </div>
@@ -416,24 +416,29 @@
         let chronoRunning = false;
 
         window.toggleChrono = () => {
-            const btnIcon = document.querySelector('#chrono-btn i');
             const btn = document.getElementById('chrono-btn');
             
             if (chronoRunning) {
+                // STOP
                 clearInterval(chronoInterval);
                 chronoRunning = false;
-                btnIcon.setAttribute('data-lucide', 'play');
+                
+                // Mise à jour explicite de l'icône Play
                 btn.classList.remove('bg-amber-500');
                 btn.classList.add('bg-blue-600');
+                btn.innerHTML = '<i data-lucide="play" class="w-6 h-6 fill-current"></i>';
             } else {
+                // START
                 chronoInterval = setInterval(() => {
                     chronoTime++;
                     updateChronoDisplay();
                 }, 1000);
                 chronoRunning = true;
-                btnIcon.setAttribute('data-lucide', 'pause');
+                
+                // Mise à jour explicite de l'icône Pause
                 btn.classList.remove('bg-blue-600');
                 btn.classList.add('bg-amber-500');
+                btn.innerHTML = '<i data-lucide="pause" class="w-6 h-6 fill-current"></i>';
             }
             lucide.createIcons();
         }
@@ -443,11 +448,12 @@
             chronoRunning = false;
             chronoTime = 0;
             updateChronoDisplay();
-            const btnIcon = document.querySelector('#chrono-btn i');
+            
             const btn = document.getElementById('chrono-btn');
-            btnIcon.setAttribute('data-lucide', 'play');
             btn.classList.remove('bg-amber-500');
             btn.classList.add('bg-blue-600');
+            btn.innerHTML = '<i data-lucide="play" class="w-6 h-6 fill-current"></i>';
+            
             lucide.createIcons();
         }
 
