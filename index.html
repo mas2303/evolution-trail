@@ -1,306 +1,458 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { 
-  BarChart, Bar, XAxis, Tooltip, ResponsiveContainer
-} from 'recharts';
-import { 
-  Activity, 
-  Shield, 
-  Package, 
-  Heart, 
-  TrendingUp, 
-  Plus, 
-  Calendar, 
-  CheckCircle2, 
-  Trash2, 
-  X
-} from 'lucide-react';
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Road to GT85 - Cloud</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
 
-// --- DONNÉES PAR DÉFAUT ---
-const DEFAULT_SESSIONS = [
-  { id: 1, date: '2025-01-20', type: 'Planning', km: 0, dPlus: 0, duration: '00:30', rpe: 1, ppg: false },
-  { id: 2, date: '2025-01-21', type: 'EF (Footing)', km: 8, dPlus: 50, duration: '01:00', rpe: 2, ppg: true }
-];
+    <!-- Recharts -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/recharts/umd/Recharts.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-const DEFAULT_GEAR = [
-  { id: 1, equipement: "Sac 12L", modele: "Salomon Adv Skin 12", etat: "A acheter", budget: 120 },
-  { id: 2, equipement: "Bâtons", modele: "Leki Ultratrail FX.One", etat: "A acheter", budget: 180 },
-  { id: 3, equipement: "Chaussures", modele: "Hoka Speedgoat", etat: "Acquis", budget: 160 },
-  { id: 4, equipement: "Frontale", modele: "Petzl Swift RL", etat: "A acheter", budget: 100 }
-];
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .loading-screen { position: fixed; inset: 0; background: white; z-index: 50; display: flex; align-items: center; justify-content: center; }
+        
+        /* Masquer la scrollbar */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900 pb-24 select-none">
 
-const PPG_LIST = [
-  { id: 1, exercice: "Chaise", goal: "4 x 45s", focus: "Cuisses" },
-  { id: 2, exercice: "Squats", goal: "3 x 20", focus: "Puissance" },
-  { id: 3, exercice: "Gainage", goal: "4 x 1 min", focus: "Stabilité" },
-  { id: 4, exercice: "Proprioception", goal: "3 x 30s", focus: "Chevilles" }
-];
-
-const HEART_ZONES = [
-  { zone: "Z1", range: "< 130", label: "Récup", color: "#22c55e" },
-  { zone: "Z2", range: "130-145", label: "Endurance", color: "#3b82f6" },
-  { zone: "Z3", range: "145-160", label: "Tempo", color: "#eab308" },
-  { zone: "Z4", range: "160-175", label: "Seuil", color: "#f97316" },
-  { zone: "Z5", range: "> 175", label: "VMA", color: "#ef4444" }
-];
-
-// --- FONCTIONS DE SAUVEGARDE SÉCURISÉES ---
-const safeGetStorage = (key, fallback) => {
-  if (typeof window === 'undefined') return fallback;
-  try {
-    const saved = localStorage.getItem(key);
-    return saved ? JSON.parse(saved) : fallback;
-  } catch (e) {
-    console.warn("Erreur lecture stockage", e);
-    return fallback;
-  }
-};
-
-const safeSetStorage = (key, value) => {
-  if (typeof window === 'undefined') return;
-  try {
-    localStorage.setItem(key, JSON.stringify(value));
-  } catch (e) {
-    console.warn("Erreur écriture stockage", e);
-  }
-};
-
-// --- COMPOSANT PRINCIPAL ---
-const App = () => {
-  const [activeTab, setActiveTab] = useState('dashboard');
-  const [sessions, setSessions] = useState(() => safeGetStorage('gt85_sessions', DEFAULT_SESSIONS));
-  const [gear, setGear] = useState(() => safeGetStorage('gt85_gear', DEFAULT_GEAR));
-  const [ppgDone, setPpgDone] = useState(() => safeGetStorage('gt85_ppg_done', []));
-  const [showAddModal, setShowAddModal] = useState(false);
-
-  // Sauvegarde à chaque changement
-  useEffect(() => safeSetStorage('gt85_sessions', sessions), [sessions]);
-  useEffect(() => safeSetStorage('gt85_gear', gear), [gear]);
-  useEffect(() => safeSetStorage('gt85_ppg_done', ppgDone), [ppgDone]);
-
-  // Calculs Stats
-  const stats = useMemo(() => {
-    const totalKm = sessions.reduce((acc, s) => acc + (parseFloat(s.km) || 0), 0);
-    const totalDPlus = sessions.reduce((acc, s) => acc + (parseInt(s.dPlus) || 0), 0);
-    const avgRPE = sessions.length ? (sessions.reduce((acc, s) => acc + (parseInt(s.rpe) || 0), 0) / sessions.length).toFixed(1) : 0;
-    const ppgCount = sessions.filter(s => s.ppg).length;
-    return { totalKm, totalDPlus, avgRPE, count: sessions.length, ppgCount };
-  }, [sessions]);
-
-  // Actions
-  const addSession = (e) => {
-    e.preventDefault();
-    const formData = new FormData(e.target);
-    const newSession = {
-      id: Date.now(),
-      date: formData.get('date'),
-      type: formData.get('type'),
-      km: parseFloat(formData.get('km') || 0),
-      dPlus: parseInt(formData.get('dPlus') || 0),
-      duration: formData.get('duration') || '00:00',
-      rpe: parseInt(formData.get('rpe') || 1),
-      ppg: formData.get('ppg') === 'on'
-    };
-    setSessions([newSession, ...sessions]);
-    setShowAddModal(false);
-  };
-
-  const deleteSession = (id) => {
-    setSessions(sessions.filter(s => s.id !== id));
-  };
-
-  const toggleGear = (id) => {
-    setGear(gear.map(g => g.id === id ? { ...g, etat: g.etat === 'Acquis' ? 'A acheter' : 'Acquis' } : g));
-  };
-
-  const togglePPG = (id) => {
-    setPpgDone(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
-  };
-
-  // --- VUES ---
-  const DashboardView = () => (
-    <div className="space-y-6">
-      {/* KPI Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
-          <p className="text-xs text-blue-600 font-bold uppercase">Distance</p>
-          <p className="text-2xl font-black text-blue-900">{stats.totalKm.toFixed(1)} km</p>
+    <!-- Écran de chargement -->
+    <div id="loading" class="loading-screen">
+        <div class="text-center">
+            <h1 class="text-3xl font-black italic mb-2">GT85</h1>
+            <p class="text-slate-400 text-sm animate-pulse">Connexion Cloud...</p>
         </div>
-        <div className="bg-emerald-50 p-4 rounded-xl border border-emerald-100">
-          <p className="text-xs text-emerald-600 font-bold uppercase">Dénivelé</p>
-          <p className="text-2xl font-black text-emerald-900">{stats.totalDPlus} m</p>
-        </div>
-        <div className="bg-amber-50 p-4 rounded-xl border border-amber-100">
-          <p className="text-xs text-amber-600 font-bold uppercase">RPE Moy.</p>
-          <p className="text-2xl font-black text-amber-900">{stats.avgRPE}/10</p>
-        </div>
-        <div className="bg-slate-100 p-4 rounded-xl border border-slate-200">
-          <p className="text-xs text-slate-500 font-bold uppercase">PPG Total</p>
-          <p className="text-2xl font-black text-slate-800">{stats.ppgCount}</p>
-        </div>
-      </div>
-
-      {/* Chart */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
-        <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
-          <TrendingUp size={18} className="text-blue-600"/> Volume Hebdo
-        </h3>
-        <div className="h-48 w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={[...sessions].reverse().slice(-7)}>
-              <XAxis dataKey="date" hide />
-              <Tooltip cursor={{fill: 'transparent'}} contentStyle={{borderRadius: '8px', fontSize: '12px'}} />
-              <Bar dataKey="km" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-
-      {/* Objectif */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
-        <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
-          <Calendar size={18} className="text-blue-600"/> Objectif GT85
-        </h3>
-        <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden">
-          <div className="bg-blue-600 h-full" style={{ width: `${Math.min(100, (stats.totalKm / 500) * 100)}%` }}></div>
-        </div>
-        <p className="text-xs text-right mt-1 text-slate-500 font-bold">Progression : {((stats.totalKm / 500) * 100).toFixed(0)}%</p>
-      </div>
     </div>
-  );
 
-  const JournalView = () => (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h2 className="text-xl font-black text-slate-800">Séances</h2>
-        <button onClick={() => setShowAddModal(true)} className="bg-blue-600 text-white p-2 rounded-full shadow-md">
-          <Plus size={24} />
-        </button>
-      </div>
-      
-      {sessions.length === 0 && <p className="text-center text-slate-400 py-10">Aucune séance.</p>}
-
-      {sessions.map(s => (
-        <div key={s.id} className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between">
-          <div>
-            <p className="text-xs font-bold text-blue-500 uppercase mb-1">{s.date} - {s.type}</p>
-            <p className="font-black text-slate-700">{s.km} km | {s.dPlus} m D+</p>
-          </div>
-          <button onClick={() => deleteSession(s.id)} className="text-slate-300 hover:text-red-500">
-            <Trash2 size={20} />
-          </button>
-        </div>
-      ))}
-    </div>
-  );
-
-  const PPGView = () => (
-    <div className="space-y-4">
-      <div className="bg-slate-800 p-5 rounded-2xl text-white">
-        <h2 className="font-bold text-lg mb-1 flex items-center gap-2"><Shield size={20}/> Programme L'Armure</h2>
-        <p className="text-sm text-slate-400">Renforcement musculaire</p>
-      </div>
-      <div className="grid gap-3">
-        {PPG_LIST.map(ex => (
-          <div key={ex.id} onClick={() => togglePPG(ex.id)} className={`p-4 rounded-xl border cursor-pointer flex justify-between items-center ${ppgDone.includes(ex.id) ? 'bg-emerald-50 border-emerald-200' : 'bg-white border-slate-200'}`}>
+    <!-- En-tête -->
+    <header class="px-6 pt-8 pb-4 bg-white shadow-sm sticky top-0 z-30">
+        <div class="flex justify-between items-center">
             <div>
-              <p className={`font-bold ${ppgDone.includes(ex.id) ? 'text-emerald-700 line-through' : 'text-slate-800'}`}>{ex.exercice}</p>
-              <p className="text-xs text-slate-500">{ex.goal}</p>
+                <h1 class="text-2xl font-black italic tracking-tighter uppercase">Road to <span class="text-blue-600">GT85</span></h1>
+                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Base de Données Active</p>
             </div>
-            <CheckCircle2 size={24} className={ppgDone.includes(ex.id) ? 'text-emerald-500' : 'text-slate-200'} />
-          </div>
-        ))}
-      </div>
-      {ppgDone.length > 0 && (
-        <button onClick={() => setPpgDone([])} className="w-full py-3 text-sm font-bold text-slate-500 uppercase">Réinitialiser</button>
-      )}
-    </div>
-  );
-
-  const GearView = () => (
-    <div className="space-y-4">
-      <h2 className="text-xl font-black text-slate-800">Matériel</h2>
-      {gear.map(g => (
-        <div key={g.id} className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
-          <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${g.etat === 'Acquis' ? 'bg-emerald-100 text-emerald-600' : 'bg-orange-100 text-orange-600'}`}>
-            <Package size={20} />
-          </div>
-          <div className="flex-1">
-            <p className="font-bold text-slate-800">{g.equipement}</p>
-            <p className="text-xs text-slate-500">{g.modele} - <span className="text-blue-600 font-bold">{g.budget}€</span></p>
-          </div>
-          <button onClick={() => toggleGear(g.id)} className={`text-xs font-bold px-3 py-1 rounded-md uppercase ${g.etat === 'Acquis' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'}`}>
-            {g.etat}
-          </button>
+            <!-- Indicateur de statut -->
+            <div id="status-indicator" class="w-3 h-3 rounded-full bg-orange-500 shadow-md animate-pulse" title="Statut Connexion"></div>
         </div>
-      ))}
-    </div>
-  );
+    </header>
 
-  // --- RENDU PRINCIPAL ---
-  return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 pb-24 font-sans">
-      <header className="px-6 pt-8 pb-4 bg-white shadow-sm mb-4">
-        <h1 className="text-2xl font-black italic tracking-tighter uppercase">Road to <span className="text-blue-600">GT85</span></h1>
-      </header>
-
-      <main className="px-4">
-        {activeTab === 'dashboard' && <DashboardView />}
-        {activeTab === 'journal' && <JournalView />}
-        {activeTab === 'ppg' && <PPGView />}
-        {activeTab === 'gear' && <GearView />}
-      </main>
-
-      {/* Modal Ajout */}
-      {showAddModal && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-sm rounded-2xl p-6 shadow-xl">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="font-bold text-lg">Ajouter Séance</h3>
-              <button onClick={() => setShowAddModal(false)}><X size={24}/></button>
+    <!-- Contenu Principal -->
+    <main class="px-4 mt-4">
+        
+        <!-- DASHBOARD TAB -->
+        <div id="tab-dashboard" class="tab-content active space-y-6">
+            <!-- Stats Cards -->
+            <div class="grid grid-cols-2 gap-3">
+                <div class="bg-blue-50 p-4 rounded-2xl border border-blue-100">
+                    <p class="text-[10px] text-blue-600 font-bold uppercase">Distance Totale</p>
+                    <p class="text-2xl font-black text-blue-900"><span id="stat-km">0</span> <span class="text-xs">km</span></p>
+                </div>
+                <div class="bg-emerald-50 p-4 rounded-2xl border border-emerald-100">
+                    <p class="text-[10px] text-emerald-600 font-bold uppercase">Dénivelé Total</p>
+                    <p class="text-2xl font-black text-emerald-900"><span id="stat-dplus">0</span> <span class="text-xs">m</span></p>
+                </div>
+                <div class="bg-amber-50 p-4 rounded-2xl border border-amber-100">
+                    <p class="text-[10px] text-amber-600 font-bold uppercase">Moyenne RPE</p>
+                    <p class="text-2xl font-black text-amber-900"><span id="stat-rpe">0</span><span class="text-xs">/10</span></p>
+                </div>
+                <div class="bg-slate-100 p-4 rounded-2xl border border-slate-200">
+                    <p class="text-[10px] text-slate-500 font-bold uppercase">Sessions PPG</p>
+                    <p class="text-2xl font-black text-slate-800"><span id="stat-ppg">0</span></p>
+                </div>
             </div>
-            <form onSubmit={addSession} className="space-y-3">
-              <input name="date" type="date" required className="w-full bg-slate-100 p-3 rounded-lg text-sm" defaultValue={new Date().toISOString().split('T')[0]} />
-              <select name="type" className="w-full bg-slate-100 p-3 rounded-lg text-sm">
-                <option>EF (Footing)</option>
-                <option>Sortie Longue</option>
-                <option>Trail / D+</option>
-                <option>VMA</option>
-              </select>
-              <div className="flex gap-3">
-                <input name="km" type="number" step="0.1" placeholder="KM" required className="w-full bg-slate-100 p-3 rounded-lg text-sm" />
-                <input name="dPlus" type="number" placeholder="D+" required className="w-full bg-slate-100 p-3 rounded-lg text-sm" />
-              </div>
-              <input name="rpe" type="number" min="1" max="10" placeholder="RPE (1-10)" required className="w-full bg-slate-100 p-3 rounded-lg text-sm" />
-              <div className="flex items-center gap-2">
-                <input type="checkbox" name="ppg" id="ppg-check" className="w-4 h-4"/>
-                <label htmlFor="ppg-check" className="text-sm font-bold">Session PPG incluse ?</label>
-              </div>
-              <button type="submit" className="w-full bg-blue-600 text-white font-bold py-3 rounded-xl mt-2">Valider</button>
+
+            <!-- Progression Bar -->
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
+                <h3 class="font-bold text-slate-800 mb-4 flex items-center gap-2">
+                    <i data-lucide="calendar" class="w-4 h-4 text-blue-600"></i> Objectif GT85
+                </h3>
+                <div class="w-full bg-slate-100 rounded-full h-3 overflow-hidden">
+                    <div id="progression-bar" class="bg-blue-600 h-full transition-all duration-1000" style="width: 0%"></div>
+                </div>
+                <div class="flex justify-between mt-2 text-xs font-bold text-slate-400">
+                    <span>0 km</span>
+                    <span id="progression-text">0%</span>
+                    <span>500 km (Cycle)</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- JOURNAL TAB -->
+        <div id="tab-journal" class="tab-content space-y-4">
+            <div class="flex justify-between items-center px-1">
+                <h2 class="text-xl font-black text-slate-800">Séances</h2>
+                <button onclick="openModal()" class="bg-blue-600 text-white p-2 rounded-full shadow-lg active:scale-95 transition-transform">
+                    <i data-lucide="plus" class="w-6 h-6"></i>
+                </button>
+            </div>
+            <div id="sessions-list" class="space-y-3 pb-20">
+                <!-- Les séances seront injectées ici par JS -->
+                <p class="text-center text-slate-400 py-10 italic">Chargement...</p>
+            </div>
+        </div>
+
+        <!-- PPG TAB -->
+        <div id="tab-ppg" class="tab-content space-y-4">
+            <div class="bg-slate-900 p-6 rounded-3xl text-white shadow-xl relative overflow-hidden">
+                <div class="absolute right-[-20px] bottom-[-20px] opacity-10"><i data-lucide="shield" class="w-32 h-32"></i></div>
+                <h2 class="text-xl font-black mb-1">Programme "L'Armure"</h2>
+                <p class="text-xs text-slate-400">Renforcement spécifique Ultra-Trail.</p>
+            </div>
+            <div id="ppg-list" class="space-y-3">
+                <!-- JS injectera la liste ici -->
+            </div>
+            <button onclick="resetPPG()" class="w-full py-3 text-xs font-bold text-slate-400 uppercase tracking-widest mt-4 active:bg-slate-200 rounded-xl transition-colors">Réinitialiser la séance</button>
+        </div>
+
+        <!-- MATOS TAB -->
+        <div id="tab-gear" class="tab-content space-y-3">
+            <h2 class="text-xl font-black text-slate-800 px-1">Matériel & Budget</h2>
+            <div id="gear-list" class="space-y-3 pb-20">
+                <!-- JS injectera le matos ici -->
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Navigation -->
+    <nav class="fixed bottom-6 left-6 right-6 bg-white/95 backdrop-blur-xl border border-slate-200 rounded-3xl shadow-2xl p-2 flex justify-around items-center z-40">
+        <button onclick="switchTab('dashboard')" class="nav-btn active flex-1 flex flex-col items-center py-2 text-blue-600 transition-colors">
+            <i data-lucide="trending-up" class="w-5 h-5"></i>
+            <span class="text-[9px] font-black uppercase mt-1">Stats</span>
+        </button>
+        <button onclick="switchTab('journal')" class="nav-btn flex-1 flex flex-col items-center py-2 text-slate-400 hover:text-slate-600 transition-colors">
+            <i data-lucide="activity" class="w-5 h-5"></i>
+            <span class="text-[9px] font-black uppercase mt-1">Journal</span>
+        </button>
+        <button onclick="switchTab('ppg')" class="nav-btn flex-1 flex flex-col items-center py-2 text-slate-400 hover:text-slate-600 transition-colors">
+            <i data-lucide="shield" class="w-5 h-5"></i>
+            <span class="text-[9px] font-black uppercase mt-1">PPG</span>
+        </button>
+        <button onclick="switchTab('gear')" class="nav-btn flex-1 flex flex-col items-center py-2 text-slate-400 hover:text-slate-600 transition-colors">
+            <i data-lucide="package" class="w-5 h-5"></i>
+            <span class="text-[9px] font-black uppercase mt-1">Matos</span>
+        </button>
+    </nav>
+
+    <!-- Modal Ajout Séance -->
+    <div id="add-modal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm hidden flex items-end sm:items-center justify-center p-4">
+        <div class="bg-white w-full max-w-md rounded-3xl p-6 shadow-2xl animate-[fadeIn_0.3s_ease-out]">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-black">Ajouter Séance</h3>
+                <button onclick="closeModal()" class="p-2 bg-slate-100 rounded-full"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <form id="add-form" class="space-y-4">
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-bold uppercase text-slate-400">Date</label>
+                        <input name="date" type="date" required class="w-full bg-slate-50 p-3 rounded-xl text-sm font-bold border border-slate-100 outline-none focus:border-blue-500" id="date-input">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-bold uppercase text-slate-400">Type</label>
+                        <select name="type" class="w-full bg-slate-50 p-3 rounded-xl text-sm font-bold border border-slate-100 outline-none focus:border-blue-500">
+                            <option>EF (Footing)</option>
+                            <option>Sortie Longue</option>
+                            <option>Trail / D+</option>
+                            <option>VMA / Seuil</option>
+                            <option>PPG Seule</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="grid grid-cols-3 gap-3">
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-bold uppercase text-slate-400">KM</label>
+                        <input name="km" type="number" step="0.1" placeholder="0.0" class="w-full bg-slate-50 p-3 rounded-xl text-sm font-bold border border-slate-100 outline-none focus:border-blue-500">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-bold uppercase text-slate-400">D+ (m)</label>
+                        <input name="dPlus" type="number" placeholder="0" class="w-full bg-slate-50 p-3 rounded-xl text-sm font-bold border border-slate-100 outline-none focus:border-blue-500">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-bold uppercase text-slate-400">RPE</label>
+                        <input name="rpe" type="number" min="1" max="10" placeholder="1-10" required class="w-full bg-slate-50 p-3 rounded-xl text-sm font-bold border border-slate-100 outline-none focus:border-blue-500">
+                    </div>
+                </div>
+                <div class="flex items-center gap-3 bg-slate-50 p-3 rounded-xl border border-slate-100">
+                    <input type="checkbox" name="ppg" id="ppg-check" class="w-5 h-5 accent-blue-600 rounded">
+                    <label htmlFor="ppg-check" class="text-sm font-bold text-slate-600">Session PPG incluse ?</label>
+                </div>
+                <button type="submit" class="w-full bg-blue-600 text-white font-black py-4 rounded-2xl shadow-xl shadow-blue-500/20 active:scale-95 transition-all">ENREGISTRER</button>
             </form>
-          </div>
         </div>
-      )}
-
-      {/* Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 p-3 flex justify-around z-40 pb-6 safe-area-bottom">
-        {[
-          { id: 'dashboard', icon: TrendingUp, label: 'Stats' },
-          { id: 'journal', icon: Activity, label: 'Journal' },
-          { id: 'ppg', icon: Shield, label: 'PPG' },
-          { id: 'gear', icon: Package, label: 'Matos' },
-        ].map(tab => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`flex flex-col items-center ${activeTab === tab.id ? 'text-blue-600' : 'text-slate-400'}`}
-          >
-            <tab.icon size={24} />
-            <span className="text-[10px] font-bold uppercase mt-1">{tab.label}</span>
-          </button>
-        ))}
-      </nav>
     </div>
-  );
-};
 
-export default App;
+    <!-- ======================================================= -->
+    <!-- LOGIQUE JAVASCRIPT AVEC FIREBASE SANS LOGIN             -->
+    <!-- ======================================================= -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, addDoc, query, onSnapshot, orderBy, deleteDoc, doc, updateDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        // =========================================================================
+        // ⬇️⬇️ C'EST ICI ! COLLE TES CLÉS FIREBASE JUSTE EN DESSOUS ⬇️⬇️
+        // =========================================================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyByuABj8lDBXQWQI_V-Gsk-iN4XwbNk5UI",
+            authDomain: "road-to-gt85.firebaseapp.com",
+            projectId: "road-to-gt85",
+            storageBucket: "road-to-gt85.firebasestorage.app",
+            messagingSenderId: "337729038344",
+            appId: "1:337729038344:web:37c9b098976b67558cc9bd",
+            measurementId: "G-3RZFR8H9CN"
+        };
+        // =========================================================================
+
+
+        // --- Données Statiques ---
+        const PPG_EXERCISES = [
+            { id: 'chaise', name: "Chaise (Mur)", info: "4x45s • Cuisses" },
+            { id: 'squat', name: "Squats", info: "3x20 • Puissance" },
+            { id: 'fentes', name: "Fentes", info: "3x12/j • Stabilité" },
+            { id: 'gainage', name: "Gainage", info: "4x1min • Tronc" },
+            { id: 'proprio', name: "Proprioception", info: "3x30s • Chevilles" }
+        ];
+
+        const GEAR_ITEMS = [
+            { id: 'sac', name: "Sac 12L", model: "Salomon Adv Skin", price: 120, status: 'A acheter' },
+            { id: 'batons', name: "Bâtons", model: "Leki Ultratrail", price: 180, status: 'A acheter' },
+            { id: 'shoes', name: "Chaussures", model: "Hoka Speedgoat", price: 160, status: 'Acquis' },
+            { id: 'lamp', name: "Frontale", model: "Petzl Swift RL", price: 100, status: 'A acheter' }
+        ];
+
+        // --- Initialisation ---
+        let app, db, userId;
+
+        // Fonction pour générer un ID unique par téléphone sans se connecter
+        function getDeviceId() {
+            let id = localStorage.getItem('gt85_device_id');
+            if (!id) {
+                id = 'user_' + Math.random().toString(36).substr(2, 9) + Date.now();
+                localStorage.setItem('gt85_device_id', id);
+            }
+            return id;
+        }
+
+        function initApp() {
+            if(firebaseConfig.apiKey === "REMPLACE_MOI") {
+                alert("N'oublie pas de coller tes clés Firebase dans le code !");
+                return;
+            }
+
+            try {
+                app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                userId = getDeviceId(); // On utilise l'ID généré localement
+
+                // On lance la connexion
+                console.log("Démarrage avec ID :", userId);
+                initDataListeners();
+
+            } catch (e) {
+                console.error("Erreur Init:", e);
+                alert("Erreur: " + e.message);
+            }
+        }
+
+        // --- Logique Application ---
+
+        function initDataListeners() {
+            const statusIndicator = document.getElementById('status-indicator');
+
+            // 1. Écouteur Sessions
+            const qSessions = query(collection(db, `users/${userId}/sessions`), orderBy("date", "desc"));
+            onSnapshot(qSessions, (snapshot) => {
+                // Si on reçoit des données, c'est que ça marche !
+                document.getElementById('loading').style.display = 'none';
+                statusIndicator.classList.remove('bg-orange-500', 'animate-pulse');
+                statusIndicator.classList.add('bg-green-500');
+
+                const sessions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderSessions(sessions);
+                calculateStats(sessions);
+            }, (error) => {
+                console.error("Erreur Droits:", error);
+                statusIndicator.classList.add('bg-red-500');
+                if(error.code === 'permission-denied') {
+                    alert("ERREUR : Tu n'as pas changé les Règles dans Firestore ! Mets 'allow read, write: if true;'");
+                }
+            });
+
+            // 2. Écouteur PPG Check
+            const qPPG = collection(db, `users/${userId}/ppg_status`);
+            onSnapshot(qPPG, (snapshot) => {
+                const ppgStatus = {};
+                snapshot.docs.forEach(doc => ppgStatus[doc.id] = doc.data().done);
+                renderPPG(ppgStatus);
+            });
+
+            // 3. Écouteur Gear
+            const qGear = collection(db, `users/${userId}/gear_status`);
+            onSnapshot(qGear, (snapshot) => {
+                const gearStatus = {};
+                snapshot.docs.forEach(doc => gearStatus[doc.id] = doc.data().status);
+                renderGear(gearStatus);
+            });
+        }
+
+        // --- Actions Firestore ---
+
+        async function addSession(e) {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            try {
+                await addDoc(collection(db, `users/${userId}/sessions`), {
+                    date: formData.get('date'),
+                    type: formData.get('type'),
+                    km: parseFloat(formData.get('km') || 0),
+                    dPlus: parseInt(formData.get('dPlus') || 0),
+                    rpe: parseInt(formData.get('rpe') || 0),
+                    ppg: formData.get('ppg') === 'on',
+                    timestamp: new Date()
+                });
+                closeModal();
+                e.target.reset();
+            } catch (err) {
+                console.error("Erreur ajout:", err);
+                alert("Erreur sauvegarde : " + err.message);
+            }
+        }
+
+        window.deleteSession = async (id) => {
+            if(confirm('Supprimer ?')) {
+                await deleteDoc(doc(db, `users/${userId}/sessions`, id));
+            }
+        }
+
+        window.togglePPG = async (id, status) => {
+            await setDoc(doc(db, `users/${userId}/ppg_status`, id), { done: status }, { merge: true });
+        }
+
+        window.toggleGear = async (id, status) => {
+            await setDoc(doc(db, `users/${userId}/gear_status`, id), { status: status }, { merge: true });
+        }
+        
+        window.resetPPG = async () => {
+             PPG_EXERCISES.forEach(async (ex) => {
+                 await setDoc(doc(db, `users/${userId}/ppg_status`, ex.id), { done: false });
+             });
+        }
+
+        // --- Rendu HTML (Même que avant) ---
+        // (J'ai compressé cette partie car elle est identique)
+        
+        function renderSessions(sessions) {
+            const container = document.getElementById('sessions-list');
+            container.innerHTML = '';
+            if(sessions.length === 0) {
+                container.innerHTML = '<p class="text-center text-slate-400 py-10 italic">Aucune séance.</p>';
+                return;
+            }
+            sessions.forEach(s => {
+                const div = document.createElement('div');
+                div.className = "bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between";
+                div.innerHTML = `
+                    <div class="flex-1">
+                        <div class="flex items-center gap-2 mb-1">
+                            <span class="text-[10px] font-bold text-blue-500 uppercase bg-blue-50 px-2 py-0.5 rounded">${new Date(s.date).toLocaleDateString('fr-FR', {day: '2-digit', month: '2-digit'})}</span>
+                            <span class="text-xs font-bold text-slate-700">${s.type}</span>
+                        </div>
+                        <div class="flex gap-3 text-sm font-black text-slate-800">
+                           <span>${s.km} km</span><span class="text-slate-300">|</span><span>${s.dPlus} m D+</span>
+                        </div>
+                        ${s.ppg ? '<span class="text-[9px] text-emerald-600 font-bold flex items-center gap-1 mt-1"><i data-lucide="check-circle-2" class="w-3 h-3"></i> PPG INCLUSE</span>' : ''}
+                    </div>
+                    <button onclick="deleteSession('${s.id}')" class="text-slate-300 hover:text-red-500 p-2"><i data-lucide="trash-2" class="w-5 h-5"></i></button>
+                `;
+                container.appendChild(div);
+            });
+            lucide.createIcons();
+        }
+
+        function calculateStats(sessions) {
+            const totalKm = sessions.reduce((acc, s) => acc + (parseFloat(s.km) || 0), 0);
+            const totalDPlus = sessions.reduce((acc, s) => acc + (parseInt(s.dPlus) || 0), 0);
+            const avgRPE = sessions.length ? (sessions.reduce((acc, s) => acc + (parseInt(s.rpe) || 0), 0) / sessions.length).toFixed(1) : 0;
+            const ppgCount = sessions.filter(s => s.ppg).length;
+            document.getElementById('stat-km').innerText = totalKm.toFixed(1);
+            document.getElementById('stat-dplus').innerText = totalDPlus;
+            document.getElementById('stat-rpe').innerText = avgRPE;
+            document.getElementById('stat-ppg').innerText = ppgCount;
+            const progress = Math.min(100, (totalKm / 500) * 100);
+            document.getElementById('progression-bar').style.width = `${progress}%`;
+            document.getElementById('progression-text').innerText = `${progress.toFixed(0)}%`;
+        }
+
+        function renderPPG(statusMap) {
+            const container = document.getElementById('ppg-list');
+            container.innerHTML = '';
+            PPG_EXERCISES.forEach(ex => {
+                const isDone = statusMap[ex.id] === true;
+                const div = document.createElement('div');
+                div.className = `p-4 rounded-2xl border cursor-pointer flex justify-between items-center transition-all ${isDone ? 'bg-emerald-50 border-emerald-200' : 'bg-white border-slate-100'}`;
+                div.onclick = () => togglePPG(ex.id, !isDone);
+                div.innerHTML = `
+                    <div><h4 class="font-bold ${isDone ? 'text-emerald-700 line-through' : 'text-slate-800'}">${ex.name}</h4><p class="text-xs text-slate-500">${ex.info}</p></div>
+                    <div class="${isDone ? 'text-emerald-500' : 'text-slate-200'}"><i data-lucide="check-circle-2" class="w-6 h-6"></i></div>`;
+                container.appendChild(div);
+            });
+            lucide.createIcons();
+        }
+
+        function renderGear(statusMap) {
+            const container = document.getElementById('gear-list');
+            container.innerHTML = '';
+            GEAR_ITEMS.forEach(item => {
+                const currentStatus = statusMap[item.id] || item.status;
+                const isAcquired = currentStatus === 'Acquis';
+                const div = document.createElement('div');
+                div.className = "bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-4";
+                div.innerHTML = `
+                    <div class="w-10 h-10 rounded-xl flex items-center justify-center ${isAcquired ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'}"><i data-lucide="package" class="w-5 h-5"></i></div>
+                    <div class="flex-1"><h4 class="text-sm font-bold leading-tight">${item.name}</h4><p class="text-[10px] text-slate-500">${item.model}</p></div>
+                    <div class="flex flex-col items-end gap-1"><span class="text-[10px] font-black text-blue-600">${item.price}€</span>
+                        <button class="gear-toggle text-[9px] font-black px-2 py-1 rounded-lg uppercase tracking-tighter ${isAcquired ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600'}" onclick="toggleGear('${item.id}', '${currentStatus === 'Acquis' ? 'A acheter' : 'Acquis'}')">${currentStatus}</button>
+                    </div>`;
+                container.appendChild(div);
+            });
+            lucide.createIcons();
+        }
+        
+        // Expose functions to global scope
+        window.toggleGear = toggleGear;
+        document.getElementById('add-form').addEventListener('submit', addSession);
+        
+        // Démarrage
+        initApp();
+
+    </script>
+
+    <!-- UI Scripts (Onglets & Modales) -->
+    <script>
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(el => { el.classList.remove('text-blue-600', 'active'); el.classList.add('text-slate-400'); });
+            document.getElementById('tab-' + tabId).classList.add('active');
+            const activeBtn = document.querySelector(`button[onclick="switchTab('${tabId}')"]`);
+            if(activeBtn) { activeBtn.classList.remove('text-slate-400'); activeBtn.classList.add('text-blue-600', 'active'); }
+        }
+        function openModal() { document.getElementById('add-modal').classList.remove('hidden'); document.getElementById('date-input').valueAsDate = new Date(); }
+        function closeModal() { document.getElementById('add-modal').classList.add('hidden'); }
+        lucide.createIcons();
+    </script>
+</body>
+</html>
