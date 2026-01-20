@@ -42,7 +42,7 @@
             <div>
                 <h1 class="text-2xl font-black italic tracking-tighter uppercase">Road to <span class="text-blue-600">GT85</span></h1>
                 <div class="flex items-center gap-2">
-                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">v3.7 Fix</span>
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">v3.8 Simu</span>
                     <span id="header-user-id" class="text-[9px] bg-slate-100 px-1 rounded text-slate-400 font-mono">ID: ...</span>
                 </div>
             </div>
@@ -166,6 +166,61 @@
 
         <!-- MATOS TAB -->
         <div id="tab-gear" class="tab-content space-y-3">
+            
+            <!-- Simulateur de Sac -->
+            <div class="bg-blue-600 p-5 rounded-3xl shadow-lg text-white mb-6 relative overflow-hidden">
+                <div class="absolute -right-6 -top-6 opacity-10 rotate-12">
+                    <i data-lucide="backpack" class="w-40 h-40 text-white"></i>
+                </div>
+                
+                <h3 class="font-bold text-lg mb-4 flex items-center gap-2 relative z-10">
+                    <i data-lucide="calculator" class="w-5 h-5"></i> Simulateur de Sac
+                </h3>
+                
+                <div class="relative z-10">
+                    <div class="flex justify-between items-end mb-2">
+                        <label class="text-[10px] font-bold uppercase text-blue-200">Durée sortie</label>
+                        <span id="sim-duration-display" class="font-black text-2xl">2h</span>
+                    </div>
+                    <input type="range" id="sim-duration" min="1" max="10" step="0.5" value="2" class="w-full h-2 bg-blue-400 rounded-lg appearance-none cursor-pointer accent-white mb-6">
+
+                    <div class="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/20">
+                        <div class="flex justify-between items-center mb-3">
+                            <p class="text-[10px] text-blue-100 font-bold uppercase">Besoin estimé (<span id="sim-weight-display">75</span>kg)</p>
+                            <button onclick="resetSim()" class="text-[10px] text-blue-200 hover:text-white uppercase font-bold flex items-center gap-1">
+                                <i data-lucide="rotate-ccw" class="w-3 h-3"></i> Reset
+                            </button>
+                        </div>
+                        
+                        <div class="space-y-3">
+                            <label class="flex items-center gap-3 cursor-pointer group select-none">
+                                <div class="relative flex-shrink-0">
+                                    <input type="checkbox" class="peer sr-only sim-check">
+                                    <div class="w-6 h-6 border-2 border-white rounded-lg peer-checked:bg-white transition-all"></div>
+                                    <i data-lucide="check" class="w-4 h-4 text-blue-600 absolute top-0.5 left-0.5 opacity-0 peer-checked:opacity-100 transition-opacity"></i>
+                                </div>
+                                <div class="flex flex-col">
+                                    <span class="font-black text-xl leading-none"><span id="sim-water">1.0</span>L</span>
+                                    <span class="text-xs text-blue-200 font-bold uppercase">Eau / Isotonique</span>
+                                </div>
+                            </label>
+                            
+                            <label class="flex items-center gap-3 cursor-pointer group select-none">
+                                <div class="relative flex-shrink-0">
+                                    <input type="checkbox" class="peer sr-only sim-check">
+                                    <div class="w-6 h-6 border-2 border-white rounded-lg peer-checked:bg-white transition-all"></div>
+                                    <i data-lucide="check" class="w-4 h-4 text-blue-600 absolute top-0.5 left-0.5 opacity-0 peer-checked:opacity-100 transition-opacity"></i>
+                                </div>
+                                <div class="flex flex-col">
+                                    <span class="font-black text-xl leading-none"><span id="sim-carbs">120</span>g</span>
+                                    <span class="text-xs text-blue-200 font-bold uppercase">Glucides (Gels/Barres)</span>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <h2 class="text-xl font-black text-slate-800 px-1">Matériel & Budget</h2>
             <div id="gear-list" class="space-y-3 pb-20"></div>
         </div>
@@ -886,6 +941,48 @@
             document.getElementById('add-modal').classList.add('hidden');
         }
         
+        // --- Simulateur Sac ---
+        function initSimulator() {
+            const weight = parseFloat(localStorage.getItem('gt85_weight')) || 75;
+            document.getElementById('sim-weight-display').innerText = weight;
+            
+            const slider = document.getElementById('sim-duration');
+            const display = document.getElementById('sim-duration-display');
+            
+            const calculate = () => {
+                const h = parseFloat(slider.value);
+                display.innerText = h + 'h';
+                
+                // Formule : Eau = 0.5L/h base * (poids/75) 
+                // Formule : Glucides = 60g/h base * (poids/75)
+                const ratio = weight / 75;
+                
+                const water = (h * 0.5 * ratio).toFixed(1);
+                const carbs = Math.round(h * 60 * ratio);
+                
+                document.getElementById('sim-water').innerText = water;
+                document.getElementById('sim-carbs').innerText = carbs;
+            };
+
+            slider.addEventListener('input', calculate);
+            
+            // Init calcul
+            calculate();
+        }
+
+        function resetSim() {
+            document.querySelectorAll('.sim-check').forEach(c => c.checked = false);
+        }
+
+        // Lancer au chargement
+        document.addEventListener('DOMContentLoaded', initSimulator);
+        
+        // Aussi recharger quand on sauvegarde le profil (Hack pour recharger les poids)
+        const oldSaveProfile = window.saveProfile;
+        window.saveProfile = () => {
+            oldSaveProfile(); 
+        };
+
         // Init Icons
         lucide.createIcons();
     </script>
