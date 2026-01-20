@@ -60,7 +60,7 @@
     <div id="auth-container" class="hidden min-h-screen fixed inset-0 z-40 bg-slate-50 flex items-center justify-center p-6">
         <div class="bg-white w-full max-w-sm rounded-3xl p-8 shadow-2xl">
             <h1 class="text-3xl font-black italic mb-2 text-center">ROAD TO <span class="text-blue-600">GT85</span></h1>
-            <p class="text-center text-slate-400 text-sm mb-8 font-bold uppercase tracking-widest">Espace Athlète</p>
+            <p id="auth-subtitle" class="text-center text-slate-400 text-sm mb-8 font-bold uppercase tracking-widest">Connexion</p>
             
             <form id="auth-form" class="space-y-4">
                 <div>
@@ -71,14 +71,19 @@
                     <label class="text-[10px] font-bold uppercase text-slate-400 ml-1">Mot de passe</label>
                     <input type="password" id="auth-password" required class="w-full bg-slate-50 p-3 rounded-xl text-sm font-bold border border-slate-100 outline-none focus:border-blue-500">
                 </div>
-                <p id="auth-error" class="text-red-500 text-xs font-bold text-center hidden"></p>
                 
-                <button type="submit" id="btn-login-submit" class="w-full bg-blue-600 text-white font-black py-4 rounded-2xl shadow-xl shadow-blue-500/20 active:scale-95 transition-all">
+                <!-- Zone d'erreur -->
+                <div id="auth-error" class="hidden bg-red-50 text-red-500 p-3 rounded-xl text-xs font-bold text-center border border-red-100"></div>
+                
+                <button type="submit" id="btn-auth-submit" class="w-full bg-blue-600 text-white font-black py-4 rounded-2xl shadow-xl shadow-blue-500/20 active:scale-95 transition-all">
                     SE CONNECTER
                 </button>
-                <button type="button" id="btn-register-switch" onclick="handleRegister()" class="w-full bg-white text-slate-500 font-bold py-3 rounded-xl border border-slate-200 hover:bg-slate-50">
-                    Créer un compte
-                </button>
+                
+                <div class="text-center mt-4">
+                    <button type="button" id="btn-toggle-mode" onclick="toggleAuthMode()" class="text-xs text-slate-400 font-bold hover:text-blue-600 transition-colors">
+                        Pas de compte ? Créer un compte
+                    </button>
+                </div>
             </form>
         </div>
     </div>
@@ -92,7 +97,7 @@
                 <div>
                     <h1 class="text-2xl font-black italic tracking-tighter uppercase">Road to <span class="text-blue-600">GT85</span></h1>
                     <div class="flex items-center gap-2">
-                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">v4.0 Auth</span>
+                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">v4.1 AuthFix</span>
                         <span class="text-[9px] bg-emerald-100 text-emerald-600 px-2 rounded-full font-bold uppercase">Connecté</span>
                     </div>
                 </div>
@@ -411,38 +416,56 @@
 
         // --- AUTHENTIFICATION ---
         
-        window.handleLogin = async (e) => {
-            e.preventDefault();
-            const email = document.getElementById('auth-email').value;
-            const password = document.getElementById('auth-password').value;
-            const errorMsg = document.getElementById('auth-error');
+        let isLoginMode = true;
+
+        window.toggleAuthMode = () => {
+            isLoginMode = !isLoginMode;
+            const title = document.getElementById('auth-subtitle');
+            const btn = document.getElementById('btn-auth-submit');
+            const toggle = document.getElementById('btn-toggle-mode');
+            const errorDiv = document.getElementById('auth-error');
             
-            try {
-                await signInWithEmailAndPassword(auth, email, password);
-                // Le onAuthStateChanged gérera la suite
-            } catch (error) {
-                errorMsg.innerText = "Erreur: " + error.message;
-                errorMsg.classList.remove('hidden');
+            errorDiv.classList.add('hidden');
+            
+            if(isLoginMode) {
+                title.innerText = "Connexion";
+                btn.innerText = "SE CONNECTER";
+                toggle.innerText = "Pas de compte ? Créer un compte";
+            } else {
+                title.innerText = "Inscription";
+                btn.innerText = "CRÉER UN COMPTE";
+                toggle.innerText = "Déjà un compte ? Se connecter";
             }
         }
 
-        window.handleRegister = async () => {
+        window.handleAuth = async (e) => {
+            e.preventDefault();
             const email = document.getElementById('auth-email').value;
             const password = document.getElementById('auth-password').value;
-            const errorMsg = document.getElementById('auth-error');
-
-            if(password.length < 6) {
-                errorMsg.innerText = "Le mot de passe doit faire 6 caractères min.";
-                errorMsg.classList.remove('hidden');
-                return;
-            }
+            const errorDiv = document.getElementById('auth-error');
+            
+            errorDiv.classList.add('hidden');
+            errorDiv.innerText = "";
 
             try {
-                await createUserWithEmailAndPassword(auth, email, password);
-                // Le onAuthStateChanged gérera la suite
+                if (isLoginMode) {
+                    await signInWithEmailAndPassword(auth, email, password);
+                } else {
+                    if(password.length < 6) throw new Error("Le mot de passe doit faire 6 caractères minimum.");
+                    await createUserWithEmailAndPassword(auth, email, password);
+                }
             } catch (error) {
-                errorMsg.innerText = "Erreur création: " + error.message;
-                errorMsg.classList.remove('hidden');
+                console.error(error);
+                let msg = error.message;
+                // Traduction basique des erreurs fréquentes
+                if(msg.includes('auth/invalid-email')) msg = "Email invalide.";
+                if(msg.includes('auth/user-not-found')) msg = "Utilisateur inconnu.";
+                if(msg.includes('auth/wrong-password')) msg = "Mot de passe incorrect.";
+                if(msg.includes('auth/email-already-in-use')) msg = "Cet email est déjà utilisé.";
+                if(msg.includes('auth/weak-password')) msg = "Mot de passe trop faible (6 car. min).";
+                
+                errorDiv.innerText = msg;
+                errorDiv.classList.remove('hidden');
             }
         }
 
@@ -453,7 +476,7 @@
             }
         }
 
-        document.getElementById('auth-form').addEventListener('submit', window.handleLogin);
+        document.getElementById('auth-form').addEventListener('submit', window.handleAuth);
 
         // --- Logique Application ---
 
