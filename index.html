@@ -42,7 +42,7 @@
             <div>
                 <h1 class="text-2xl font-black italic tracking-tighter uppercase">Road to <span class="text-blue-600">GT85</span></h1>
                 <div class="flex items-center gap-2">
-                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">v3.5 Pace</span>
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">v3.6 Chrono</span>
                     <span id="header-user-id" class="text-[9px] bg-slate-100 px-1 rounded text-slate-400 font-mono">ID: ...</span>
                 </div>
             </div>
@@ -146,6 +146,20 @@
                 <h2 class="text-xl font-black mb-1">Programme "L'Armure"</h2>
                 <p class="text-xs text-slate-400">Renforcement spécifique Ultra-Trail.</p>
             </div>
+            
+            <!-- CHRONOMÈTRE INTÉGRÉ -->
+            <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 text-center">
+                <div class="text-4xl font-black text-slate-800 font-mono mb-4" id="chrono-display">00:00</div>
+                <div class="flex justify-center gap-4">
+                    <button onclick="toggleChrono()" id="chrono-btn" class="bg-blue-600 text-white w-14 h-14 rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-all">
+                        <i data-lucide="play" class="w-6 h-6 fill-current"></i>
+                    </button>
+                    <button onclick="resetChrono()" class="bg-slate-100 text-slate-500 w-14 h-14 rounded-full flex items-center justify-center hover:bg-slate-200 active:scale-95 transition-all">
+                        <i data-lucide="rotate-ccw" class="w-6 h-6"></i>
+                    </button>
+                </div>
+            </div>
+
             <div id="ppg-list" class="space-y-3"></div>
             <button onclick="resetPPG()" class="w-full py-3 text-xs font-bold text-slate-400 uppercase tracking-widest mt-4 active:bg-slate-200 rounded-xl transition-colors">Réinitialiser la séance</button>
         </div>
@@ -394,6 +408,53 @@
                 snapshot.docs.forEach(doc => gearStatus[doc.id] = doc.data().status);
                 renderGear(gearStatus);
             });
+        }
+
+        // --- Gestion du Chronomètre PPG ---
+        let chronoInterval;
+        let chronoTime = 0;
+        let chronoRunning = false;
+
+        window.toggleChrono = () => {
+            const btnIcon = document.querySelector('#chrono-btn i');
+            const btn = document.getElementById('chrono-btn');
+            
+            if (chronoRunning) {
+                clearInterval(chronoInterval);
+                chronoRunning = false;
+                btnIcon.setAttribute('data-lucide', 'play');
+                btn.classList.remove('bg-amber-500');
+                btn.classList.add('bg-blue-600');
+            } else {
+                chronoInterval = setInterval(() => {
+                    chronoTime++;
+                    updateChronoDisplay();
+                }, 1000);
+                chronoRunning = true;
+                btnIcon.setAttribute('data-lucide', 'pause');
+                btn.classList.remove('bg-blue-600');
+                btn.classList.add('bg-amber-500');
+            }
+            lucide.createIcons();
+        }
+
+        window.resetChrono = () => {
+            clearInterval(chronoInterval);
+            chronoRunning = false;
+            chronoTime = 0;
+            updateChronoDisplay();
+            const btnIcon = document.querySelector('#chrono-btn i');
+            const btn = document.getElementById('chrono-btn');
+            btnIcon.setAttribute('data-lucide', 'play');
+            btn.classList.remove('bg-amber-500');
+            btn.classList.add('bg-blue-600');
+            lucide.createIcons();
+        }
+
+        function updateChronoDisplay() {
+            const m = Math.floor(chronoTime / 60).toString().padStart(2, '0');
+            const s = (chronoTime % 60).toString().padStart(2, '0');
+            document.getElementById('chrono-display').innerText = `${m}:${s}`;
         }
 
         // --- Gestion des Séances (Ajout & Edition) ---
