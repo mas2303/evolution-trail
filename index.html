@@ -42,7 +42,7 @@
             <div>
                 <h1 class="text-2xl font-black italic tracking-tighter uppercase">Road to <span class="text-blue-600">GT85</span></h1>
                 <div class="flex items-center gap-2">
-                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">v3.4 Edit</span>
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">v3.5 Pace</span>
                     <span id="header-user-id" class="text-[9px] bg-slate-100 px-1 rounded text-slate-400 font-mono">ID: ...</span>
                 </div>
             </div>
@@ -549,6 +549,22 @@
                 if (ratio > 30) ratioColor = "text-blue-500";
                 if (ratio > 38) ratioColor = "text-emerald-600 font-black"; // Objectif GT85
 
+                // --- Calcul de l'allure (Pace) ---
+                let pace = "--:--";
+                if (s.km > 0 && s.duration && s.duration !== "--:--") {
+                    const parts = s.duration.split(':').map(Number);
+                    let totalMin = 0;
+                    if (parts.length === 3) totalMin = parts[0] * 60 + parts[1] + parts[2] / 60;
+                    else if (parts.length === 2) totalMin = parts[0] + parts[1] / 60;
+                    
+                    if (totalMin > 0) {
+                        const minPerKm = totalMin / s.km;
+                        const pMin = Math.floor(minPerKm);
+                        const pSec = Math.round((minPerKm - pMin) * 60);
+                        pace = `${pMin}:${pSec.toString().padStart(2, '0')}`;
+                    }
+                }
+
                 const hrColor = getHrColorClass(s.avgHr);
 
                 const div = document.createElement('div');
@@ -562,10 +578,11 @@
                         <div class="flex gap-3 text-sm font-black text-slate-800">
                            <span>${s.km} km</span><span class="text-slate-300">|</span><span>${s.dPlus} m D+</span>
                         </div>
-                        <div class="flex gap-3 text-xs font-medium mt-1 items-center">
+                        <div class="flex gap-3 text-xs font-medium mt-1 items-center flex-wrap">
                            <span class="text-slate-500 flex items-center gap-1"><i data-lucide="clock" class="w-3 h-3"></i> ${s.duration}</span>
                            ${s.avgHr > 0 ? `<span class="${hrColor} flex items-center gap-1"><i data-lucide="heart" class="w-3 h-3"></i> ${s.avgHr}</span>` : ''}
                            <span class="${ratioColor} ml-2 border-l pl-2 border-slate-200">Ratio: ${ratio}m/km</span>
+                           <span class="text-slate-400 ml-2 border-l pl-2 border-slate-200 font-mono text-[10px]">Allure: ${pace}/km</span>
                         </div>
                         ${s.ppg ? '<span class="text-[9px] text-emerald-600 font-bold flex items-center gap-1 mt-1"><i data-lucide="check-circle-2" class="w-3 h-3"></i> PPG INCLUSE</span>' : ''}
                     </div>
