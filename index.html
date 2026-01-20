@@ -22,6 +22,8 @@
         .loading-screen { position: fixed; inset: 0; background: white; z-index: 50; display: flex; align-items: center; justify-content: center; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        /* Style spécifique pour les inputs durée */
+        .time-input { text-align: center; padding-left: 0.5rem; padding-right: 0.5rem; }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-900 pb-28 select-none">
@@ -40,7 +42,7 @@
             <div>
                 <h1 class="text-2xl font-black italic tracking-tighter uppercase">Road to <span class="text-blue-600">GT85</span></h1>
                 <div class="flex items-center gap-2">
-                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">v3.2 Analysis</span>
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">v3.4 Edit</span>
                     <span id="header-user-id" class="text-[9px] bg-slate-100 px-1 rounded text-slate-400 font-mono">ID: ...</span>
                 </div>
             </div>
@@ -214,22 +216,26 @@
         </div>
     </div>
 
-    <!-- Modal Ajout Séance -->
+    <!-- Modal Ajout/Modif Séance -->
     <div id="add-modal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm hidden flex items-end sm:items-center justify-center p-4">
         <div class="bg-white w-full max-w-md rounded-3xl p-6 shadow-2xl animate-[fadeIn_0.3s_ease-out]">
             <div class="flex justify-between items-center mb-6">
-                <h3 class="text-xl font-black">Ajouter Séance</h3>
+                <h3 class="text-xl font-black" id="modal-title">Ajouter Séance</h3>
                 <button onclick="closeModal()" class="p-2 bg-slate-100 rounded-full"><i data-lucide="x" class="w-5 h-5"></i></button>
             </div>
             <form id="add-form" class="space-y-4">
-                <div class="grid grid-cols-2 gap-4">
+                <!-- ID caché pour la modification -->
+                <input type="hidden" name="id" id="session-id">
+
+                <!-- Correction Layout Mobile: grid-cols-1 par défaut, sm:grid-cols-2 pour tablette/PC -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div class="space-y-1">
                         <label class="text-[10px] font-bold uppercase text-slate-400">Date</label>
                         <input name="date" type="date" required class="w-full bg-slate-50 p-3 rounded-xl text-sm font-bold border border-slate-100 outline-none focus:border-blue-500" id="date-input">
                     </div>
                     <div class="space-y-1">
                         <label class="text-[10px] font-bold uppercase text-slate-400">Type</label>
-                        <select name="type" class="w-full bg-slate-50 p-3 rounded-xl text-sm font-bold border border-slate-100 outline-none focus:border-blue-500">
+                        <select name="type" id="type-input" class="w-full bg-slate-50 p-3 rounded-xl text-sm font-bold border border-slate-100 outline-none focus:border-blue-500">
                             <option>EF (Footing)</option>
                             <option>Sortie Longue</option>
                             <option>Trail / D+</option>
@@ -238,35 +244,46 @@
                         </select>
                     </div>
                 </div>
+
                 <div class="grid grid-cols-2 gap-4">
                     <div class="space-y-1">
                         <label class="text-[10px] font-bold uppercase text-slate-400">Dist. (km)</label>
-                        <input name="km" type="number" step="0.1" placeholder="0.0" class="w-full bg-slate-50 p-3 rounded-xl text-sm font-bold border border-slate-100 outline-none focus:border-blue-500">
+                        <input name="km" id="km-input" type="number" step="0.1" placeholder="0.0" class="w-full bg-slate-50 p-3 rounded-xl text-sm font-bold border border-slate-100 outline-none focus:border-blue-500">
                     </div>
                     <div class="space-y-1">
                         <label class="text-[10px] font-bold uppercase text-slate-400">D+ (m)</label>
-                        <input name="dPlus" type="number" placeholder="0" class="w-full bg-slate-50 p-3 rounded-xl text-sm font-bold border border-slate-100 outline-none focus:border-blue-500">
+                        <input name="dPlus" id="dplus-input" type="number" placeholder="0" class="w-full bg-slate-50 p-3 rounded-xl text-sm font-bold border border-slate-100 outline-none focus:border-blue-500">
                     </div>
                 </div>
-                <div class="grid grid-cols-3 gap-3">
+
+                <!-- Section Durée H M S -->
+                <div class="grid grid-cols-2 gap-4">
                     <div class="space-y-1">
-                        <label class="text-[10px] font-bold uppercase text-slate-400">Durée</label>
-                        <input name="duration" type="text" placeholder="h:mm" class="w-full bg-slate-50 p-3 rounded-xl text-sm font-bold border border-slate-100 outline-none focus:border-blue-500">
+                        <label class="text-[10px] font-bold uppercase text-slate-400">Durée (H:M:S)</label>
+                        <div class="flex gap-2">
+                            <input name="dur_h" id="dur-h" type="number" placeholder="H" min="0" class="w-full bg-slate-50 p-3 rounded-xl text-sm font-bold border border-slate-100 outline-none focus:border-blue-500 time-input">
+                            <input name="dur_m" id="dur-m" type="number" placeholder="M" min="0" max="59" class="w-full bg-slate-50 p-3 rounded-xl text-sm font-bold border border-slate-100 outline-none focus:border-blue-500 time-input">
+                            <input name="dur_s" id="dur-s" type="number" placeholder="S" min="0" max="59" class="w-full bg-slate-50 p-3 rounded-xl text-sm font-bold border border-slate-100 outline-none focus:border-blue-500 time-input">
+                        </div>
                     </div>
-                    <div class="space-y-1">
-                        <label class="text-[10px] font-bold uppercase text-slate-400">FC Moy</label>
-                        <input name="avgHr" type="number" placeholder="BPM" class="w-full bg-slate-50 p-3 rounded-xl text-sm font-bold border border-slate-100 outline-none focus:border-blue-500">
-                    </div>
-                    <div class="space-y-1">
-                        <label class="text-[10px] font-bold uppercase text-slate-400">RPE</label>
-                        <input name="rpe" type="number" min="1" max="10" placeholder="1-10" required class="w-full bg-slate-50 p-3 rounded-xl text-sm font-bold border border-slate-100 outline-none focus:border-blue-500">
+                    <!-- FC et RPE sur une grille imbriquée -->
+                    <div class="grid grid-cols-2 gap-2">
+                         <div class="space-y-1">
+                            <label class="text-[10px] font-bold uppercase text-slate-400">FC Moy</label>
+                            <input name="avgHr" id="fc-input" type="number" placeholder="BPM" class="w-full bg-slate-50 p-3 rounded-xl text-sm font-bold border border-slate-100 outline-none focus:border-blue-500 text-center">
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-bold uppercase text-slate-400">RPE</label>
+                            <input name="rpe" id="rpe-input" type="number" min="1" max="10" placeholder="1-10" required class="w-full bg-slate-50 p-3 rounded-xl text-sm font-bold border border-slate-100 outline-none focus:border-blue-500 text-center">
+                        </div>
                     </div>
                 </div>
+
                 <div class="flex items-center gap-3 bg-slate-50 p-3 rounded-xl border border-slate-100">
                     <input type="checkbox" name="ppg" id="ppg-check" class="w-5 h-5 accent-blue-600 rounded">
                     <label htmlFor="ppg-check" class="text-sm font-bold text-slate-600">Session PPG incluse ?</label>
                 </div>
-                <button type="submit" class="w-full bg-blue-600 text-white font-black py-4 rounded-2xl shadow-xl shadow-blue-500/20 active:scale-95 transition-all">ENREGISTRER</button>
+                <button type="submit" id="submit-btn" class="w-full bg-blue-600 text-white font-black py-4 rounded-2xl shadow-xl shadow-blue-500/20 active:scale-95 transition-all">ENREGISTRER</button>
             </form>
         </div>
     </div>
@@ -276,10 +293,10 @@
     <!-- ======================================================= -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, query, onSnapshot, orderBy, deleteDoc, doc, updateDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, query, onSnapshot, orderBy, deleteDoc, doc, updateDoc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         // =========================================================================
-        // 🔴 CONFIGURATION FIREBASE 🔴
+        // 🔴 CONFIGURATION FIREBASE (TES CLÉS SONT ICI) 🔴
         // =========================================================================
         const firebaseConfig = {
             apiKey: "AIzaSyByuABj8lDBXQWQI_V-Gsk-iN4XwbNk5UI",
@@ -309,7 +326,7 @@
 
         // --- Initialisation ---
         let app, db, userId;
-        let weeklyChart = null; // Instance du graphique Chart.js
+        let weeklyChart = null;
 
         function getDeviceId() {
             let id = localStorage.getItem('gt85_device_id');
@@ -319,6 +336,9 @@
             }
             return id;
         }
+
+        // Démarrage auto
+        initApp();
 
         function initApp() {
             try {
@@ -376,32 +396,98 @@
             });
         }
 
-        async function addSession(e) {
+        // --- Gestion des Séances (Ajout & Edition) ---
+
+        async function handleSessionSubmit(e) {
             e.preventDefault();
             const formData = new FormData(e.target);
+            const sessionId = formData.get('id'); // Récupérer l'ID caché
+
+            // Reconstruction de la durée H:M:S
+            const h = formData.get('dur_h') || '0';
+            const m = (formData.get('dur_m') || '0').toString().padStart(2, '0');
+            const s = (formData.get('dur_s') || '0').toString().padStart(2, '0');
+            const formattedDuration = `${h}:${m}:${s}`;
+            
+            // Format d'affichage plus propre (virer 0:00:00)
+            const cleanDuration = formattedDuration === "0:00:00" ? "--:--" : 
+                                 (h === "0" ? `${m}:${s}` : formattedDuration);
+
+            const sessionData = {
+                date: formData.get('date'),
+                type: formData.get('type'),
+                km: parseFloat(formData.get('km') || 0),
+                dPlus: parseInt(formData.get('dPlus') || 0),
+                duration: cleanDuration,
+                avgHr: parseInt(formData.get('avgHr') || 0),
+                rpe: parseInt(formData.get('rpe') || 0),
+                ppg: formData.get('ppg') === 'on',
+                timestamp: new Date()
+            };
+
             try {
-                await addDoc(collection(db, `users/${userId}/sessions`), {
-                    date: formData.get('date'),
-                    type: formData.get('type'),
-                    km: parseFloat(formData.get('km') || 0),
-                    dPlus: parseInt(formData.get('dPlus') || 0),
-                    duration: formData.get('duration') || '--:--',
-                    avgHr: parseInt(formData.get('avgHr') || 0),
-                    rpe: parseInt(formData.get('rpe') || 0),
-                    ppg: formData.get('ppg') === 'on',
-                    timestamp: new Date()
-                });
+                if (sessionId) {
+                    // MODE MODIFICATION
+                    await updateDoc(doc(db, `users/${userId}/sessions`, sessionId), sessionData);
+                } else {
+                    // MODE CRÉATION
+                    await addDoc(collection(db, `users/${userId}/sessions`), sessionData);
+                }
                 closeModal();
                 e.target.reset();
             } catch (err) {
-                console.error("Erreur ajout:", err);
+                console.error("Erreur sauvegarde:", err);
                 alert("Erreur sauvegarde : " + err.message);
             }
         }
 
         window.deleteSession = async (id) => {
-            if(confirm('Supprimer ?')) {
+            if(confirm('Supprimer cette séance ?')) {
                 await deleteDoc(doc(db, `users/${userId}/sessions`, id));
+            }
+        }
+
+        // Nouvelle fonction pour charger une séance dans le modal
+        window.editSession = async (id) => {
+            const docRef = doc(db, `users/${userId}/sessions`, id);
+            const docSnap = await getDoc(docRef);
+
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                
+                // Ouvrir le modal
+                openModal(true); // true = mode edit
+
+                // Remplir les champs
+                document.getElementById('session-id').value = id;
+                document.getElementById('date-input').value = data.date;
+                document.getElementById('type-input').value = data.type;
+                document.getElementById('km-input').value = data.km;
+                document.getElementById('dplus-input').value = data.dPlus;
+                document.getElementById('fc-input').value = data.avgHr || '';
+                document.getElementById('rpe-input').value = data.rpe;
+                document.getElementById('ppg-check').checked = data.ppg;
+
+                // Parsing de la durée (format possible: "1:30:00" ou "45:00" ou "--:--")
+                if(data.duration && data.duration !== "--:--") {
+                    const parts = data.duration.split(':');
+                    if(parts.length === 3) {
+                        document.getElementById('dur-h').value = parts[0];
+                        document.getElementById('dur-m').value = parts[1];
+                        document.getElementById('dur-s').value = parts[2];
+                    } else if (parts.length === 2) {
+                        document.getElementById('dur-h').value = 0;
+                        document.getElementById('dur-m').value = parts[0];
+                        document.getElementById('dur-s').value = parts[1];
+                    }
+                } else {
+                    document.getElementById('dur-h').value = '';
+                    document.getElementById('dur-m').value = '';
+                    document.getElementById('dur-s').value = '';
+                }
+
+            } else {
+                alert("Séance introuvable !");
             }
         }
 
@@ -435,13 +521,12 @@
             localStorage.setItem('gt85_weight', document.getElementById('user-weight').value);
             localStorage.setItem('gt85_height', document.getElementById('user-height').value);
             alert("Profil sauvegardé ! Les zones cardiaques seront adaptées.");
-            window.location.reload(); // Recharger pour appliquer les couleurs
+            window.location.reload();
         }
 
         // --- Logique Couleurs FC ---
         function getHrColorClass(bpm) {
             if (!bpm || bpm === 0) return 'text-slate-400';
-            // Zones basées sur le fichier CSV
             if (bpm < 130) return 'text-slate-500'; // Z1
             if (bpm < 145) return 'text-emerald-500'; // Z2 (Cible)
             if (bpm < 160) return 'text-yellow-500'; // Z3
@@ -459,13 +544,11 @@
                 return;
             }
             sessions.forEach(s => {
-                // Calcul Ratio
                 const ratio = s.km > 0 ? Math.round(s.dPlus / s.km) : 0;
                 let ratioColor = "text-slate-400";
                 if (ratio > 30) ratioColor = "text-blue-500";
                 if (ratio > 38) ratioColor = "text-emerald-600 font-black"; // Objectif GT85
 
-                // Couleur FC
                 const hrColor = getHrColorClass(s.avgHr);
 
                 const div = document.createElement('div');
@@ -486,7 +569,10 @@
                         </div>
                         ${s.ppg ? '<span class="text-[9px] text-emerald-600 font-bold flex items-center gap-1 mt-1"><i data-lucide="check-circle-2" class="w-3 h-3"></i> PPG INCLUSE</span>' : ''}
                     </div>
-                    <button onclick="deleteSession('${s.id}')" class="text-slate-300 hover:text-red-500 p-2"><i data-lucide="trash-2" class="w-5 h-5"></i></button>
+                    <div class="flex flex-col gap-1">
+                        <button onclick="editSession('${s.id}')" class="text-slate-300 hover:text-blue-500 p-2"><i data-lucide="pencil" class="w-4 h-4"></i></button>
+                        <button onclick="deleteSession('${s.id}')" class="text-slate-300 hover:text-red-500 p-2"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                    </div>
                 `;
                 container.appendChild(div);
             });
@@ -500,7 +586,6 @@
             document.getElementById('stat-km').innerText = totalKm.toFixed(1);
             document.getElementById('stat-dplus').innerText = totalDPlus;
 
-            // Stats Hebdomadaires
             const now = new Date();
             const dayOfWeek = now.getDay(); 
             const distToMonday = (dayOfWeek + 6) % 7; 
@@ -538,29 +623,21 @@
         function renderChart(sessions) {
             const ctx = document.getElementById('weeklyChart');
             if(!ctx) return;
-
             if (sessions.length === 0) return;
 
-            // 1. Trouver la date de la toute première séance pour définir le "S1"
-            // On copie et on trie par date croissante (du plus vieux au plus récent)
             const sorted = [...sessions].sort((a, b) => new Date(a.date) - new Date(b.date));
             const firstDate = new Date(sorted[0].date);
-            
-            // On se cale sur le Lundi de cette première semaine pour être propre
             const day = firstDate.getDay();
             const diff = firstDate.getDate() - day + (day === 0 ? -6 : 1); 
             const startOfPlan = new Date(firstDate.setDate(diff));
             startOfPlan.setHours(0,0,0,0);
 
-            // 2. Grouper les km par semaine relative (S1, S2, etc.)
             const weeks = {};
             let maxWeekNum = 0;
 
             sessions.forEach(s => {
                 const d = new Date(s.date);
                 d.setHours(0,0,0,0);
-                
-                // Calcul du numéro de semaine relatif
                 const diffTime = d - startOfPlan;
                 const weekNum = Math.floor(diffTime / (1000 * 60 * 60 * 24 * 7)) + 1;
                 
@@ -572,11 +649,8 @@
                 }
             });
 
-            // 3. Remplir les données (en bouchant les trous avec des 0)
             const labels = [];
             const data = [];
-
-            // On affiche toutes les semaines de S1 jusqu'à la dernière connue
             for(let i = 1; i <= maxWeekNum; i++) {
                 labels.push(`S${i}`);
                 data.push(weeks[`S${i}`] || 0);
@@ -591,21 +665,25 @@
                     datasets: [{
                         label: 'Volume (km)',
                         data: data,
-                        borderColor: '#2563eb', // Blue-600
+                        borderColor: '#2563eb',
                         backgroundColor: 'rgba(37, 99, 235, 0.1)',
                         tension: 0.4,
                         fill: true,
-                        pointBackgroundColor: '#2563eb',
-                        pointRadius: 4
+                        pointRadius: 4,
+                        pointBackgroundColor: '#fff',
+                        pointBorderColor: '#2563eb',
+                        pointBorderWidth: 2
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
+                    plugins: {
+                        legend: { display: false }
+                    },
                     scales: {
-                        y: { beginAtZero: true, grid: { color: '#f1f5f9' } },
-                        x: { grid: { display: false } }
+                        y: { beginAtZero: true, grid: { color: '#f1f5f9' }, ticks: { font: { size: 10 } } },
+                        x: { grid: { display: false }, ticks: { font: { size: 10 } } }
                     }
                 }
             });
@@ -614,14 +692,21 @@
         function renderPPG(statusMap) {
             const container = document.getElementById('ppg-list');
             container.innerHTML = '';
+            
             PPG_EXERCISES.forEach(ex => {
                 const isDone = statusMap[ex.id] === true;
                 const div = document.createElement('div');
                 div.className = `p-4 rounded-2xl border cursor-pointer flex justify-between items-center transition-all ${isDone ? 'bg-emerald-50 border-emerald-200' : 'bg-white border-slate-100'}`;
                 div.onclick = () => togglePPG(ex.id, !isDone);
                 div.innerHTML = `
-                    <div><h4 class="font-bold ${isDone ? 'text-emerald-700 line-through' : 'text-slate-800'}">${ex.name}</h4><p class="text-xs text-slate-500">${ex.info}</p></div>
-                    <div class="${isDone ? 'text-emerald-500' : 'text-slate-200'}"><i data-lucide="check-circle-2" class="w-6 h-6"></i></div>`;
+                    <div>
+                        <h4 class="font-bold ${isDone ? 'text-emerald-700 line-through' : 'text-slate-800'}">${ex.name}</h4>
+                        <p class="text-xs text-slate-500">${ex.info}</p>
+                    </div>
+                    <div class="${isDone ? 'text-emerald-500' : 'text-slate-200'}">
+                        <i data-lucide="check-circle-2" class="w-6 h-6"></i>
+                    </div>
+                `;
                 container.appendChild(div);
             });
             lucide.createIcons();
@@ -630,42 +715,94 @@
         function renderGear(statusMap) {
             const container = document.getElementById('gear-list');
             container.innerHTML = '';
+            
             GEAR_ITEMS.forEach(item => {
                 const currentStatus = statusMap[item.id] || item.status;
                 const isAcquired = currentStatus === 'Acquis';
+                
                 const div = document.createElement('div');
                 div.className = "bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-4";
                 div.innerHTML = `
-                    <div class="w-10 h-10 rounded-xl flex items-center justify-center ${isAcquired ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'}"><i data-lucide="package" class="w-5 h-5"></i></div>
-                    <div class="flex-1"><h4 class="text-sm font-bold leading-tight">${item.name}</h4><p class="text-[10px] text-slate-500">${item.model}</p></div>
-                    <div class="flex flex-col items-end gap-1"><span class="text-[10px] font-black text-blue-600">${item.price}€</span>
-                        <button class="gear-toggle text-[9px] font-black px-2 py-1 rounded-lg uppercase tracking-tighter ${isAcquired ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600'}" onclick="toggleGear('${item.id}', '${currentStatus === 'Acquis' ? 'A acheter' : 'Acquis'}')">${currentStatus}</button>
-                    </div>`;
+                    <div class="w-10 h-10 rounded-xl flex items-center justify-center ${isAcquired ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'}">
+                        <i data-lucide="package" class="w-5 h-5"></i>
+                    </div>
+                    <div class="flex-1">
+                        <h4 class="text-sm font-bold leading-tight">${item.name}</h4>
+                        <p class="text-[10px] text-slate-500">${item.model}</p>
+                    </div>
+                    <div class="flex flex-col items-end gap-1">
+                        <span class="text-[10px] font-black text-blue-600">${item.price}€</span>
+                        <button class="gear-toggle text-[9px] font-black px-2 py-1 rounded-lg uppercase tracking-tighter ${isAcquired ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600'}" data-id="${item.id}" data-status="${currentStatus}">
+                            ${currentStatus}
+                        </button>
+                    </div>
+                `;
                 container.appendChild(div);
             });
             lucide.createIcons();
+
+            document.querySelectorAll('.gear-toggle').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const newStatus = btn.dataset.status === 'Acquis' ? 'A acheter' : 'Acquis';
+                    toggleGear(btn.dataset.id, newStatus);
+                });
+            });
         }
-        
-        // Expose functions to global scope
-        window.toggleGear = toggleGear;
-        document.getElementById('add-form').addEventListener('submit', addSession);
-        
-        // Démarrage
-        initApp();
+
+        // Expose functions to global scope for HTML onclick
+        document.getElementById('add-form').addEventListener('submit', handleSessionSubmit);
 
     </script>
 
-    <!-- UI Scripts -->
+    <!-- UI Scripts (Tabs & Modal) -->
     <script>
         function switchTab(tabId) {
+            // Hide all tabs
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('.nav-btn').forEach(el => { el.classList.remove('text-blue-600', 'active'); el.classList.add('text-slate-400'); });
+            document.querySelectorAll('.nav-btn').forEach(el => {
+                el.classList.remove('text-blue-600', 'active');
+                el.classList.add('text-slate-400');
+            });
+
+            // Show selected
             document.getElementById('tab-' + tabId).classList.add('active');
+            
+            // Highlight nav
             const activeBtn = document.querySelector(`button[onclick="switchTab('${tabId}')"]`);
-            if(activeBtn) { activeBtn.classList.remove('text-slate-400'); activeBtn.classList.add('text-blue-600', 'active'); }
+            if(activeBtn) {
+                activeBtn.classList.remove('text-slate-400');
+                activeBtn.classList.add('text-blue-600', 'active');
+            }
         }
-        function openModal() { document.getElementById('add-modal').classList.remove('hidden'); document.getElementById('date-input').valueAsDate = new Date(); }
-        function closeModal() { document.getElementById('add-modal').classList.add('hidden'); }
+
+        function openModal(isEdit = false) {
+            document.getElementById('add-modal').classList.remove('hidden');
+            
+            if(!isEdit) {
+                // RESET FORM POUR AJOUT
+                document.getElementById('add-form').reset();
+                document.getElementById('session-id').value = ""; // Vider l'ID
+                document.getElementById('modal-title').innerText = "Ajouter Séance";
+                document.getElementById('submit-btn').innerText = "ENREGISTRER";
+                document.getElementById('submit-btn').classList.remove('bg-emerald-600');
+                document.getElementById('submit-btn').classList.add('bg-blue-600');
+                
+                // Date par défaut aujourd'hui
+                document.getElementById('date-input').valueAsDate = new Date();
+            } else {
+                // MODE MODIF
+                document.getElementById('modal-title').innerText = "Modifier Séance";
+                document.getElementById('submit-btn').innerText = "METTRE À JOUR";
+                document.getElementById('submit-btn').classList.remove('bg-blue-600');
+                document.getElementById('submit-btn').classList.add('bg-emerald-600');
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('add-modal').classList.add('hidden');
+        }
+        
+        // Init Icons
         lucide.createIcons();
     </script>
 </body>
