@@ -42,7 +42,7 @@
             <div>
                 <h1 class="text-2xl font-black italic tracking-tighter uppercase">Road to <span class="text-blue-600">GT85</span></h1>
                 <div class="flex items-center gap-2">
-                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">v3.9 Pack</span>
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">v3.10 Clean</span>
                     <span id="header-user-id" class="text-[9px] bg-slate-100 px-1 rounded text-slate-400 font-mono">ID: ...</span>
                 </div>
             </div>
@@ -213,9 +213,6 @@
                     </div>
                 </div>
             </div>
-
-            <h2 class="text-xl font-black text-slate-800 px-1">Matériel & Budget</h2>
-            <div id="gear-list" class="space-y-3 pb-20"></div>
         </div>
 
     </main>
@@ -379,13 +376,6 @@
             { id: 'proprio', name: "Proprioception", info: "3x30s • Chevilles" }
         ];
 
-        const GEAR_ITEMS = [
-            { id: 'sac', name: "Sac 12L", model: "Salomon Adv Skin", price: 120, status: 'A acheter' },
-            { id: 'batons', name: "Bâtons", model: "Leki Ultratrail", price: 180, status: 'A acheter' },
-            { id: 'shoes', name: "Chaussures", model: "Hoka Speedgoat", price: 160, status: 'Acquis' },
-            { id: 'lamp', name: "Frontale", model: "Petzl Swift RL", price: 100, status: 'A acheter' }
-        ];
-
         // --- Initialisation ---
         let app, db, userId;
         let weeklyChart = null;
@@ -448,13 +438,6 @@
                 const ppgStatus = {};
                 snapshot.docs.forEach(doc => ppgStatus[doc.id] = doc.data().done);
                 renderPPG(ppgStatus);
-            });
-
-            const qGear = collection(db, `users/${userId}/gear_status`);
-            onSnapshot(qGear, (snapshot) => {
-                const gearStatus = {};
-                snapshot.docs.forEach(doc => gearStatus[doc.id] = doc.data().status);
-                renderGear(gearStatus);
             });
         }
 
@@ -608,10 +591,6 @@
 
         window.togglePPG = async (id, status) => {
             await setDoc(doc(db, `users/${userId}/ppg_status`, id), { done: status }, { merge: true });
-        }
-
-        window.toggleGear = async (id, status) => {
-            await setDoc(doc(db, `users/${userId}/gear_status`, id), { status: status }, { merge: true });
         }
         
         window.resetPPG = async () => {
@@ -842,43 +821,6 @@
                 container.appendChild(div);
             });
             lucide.createIcons();
-        }
-
-        function renderGear(statusMap) {
-            const container = document.getElementById('gear-list');
-            container.innerHTML = '';
-            
-            GEAR_ITEMS.forEach(item => {
-                const currentStatus = statusMap[item.id] || item.status;
-                const isAcquired = currentStatus === 'Acquis';
-                
-                const div = document.createElement('div');
-                div.className = "bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-4";
-                div.innerHTML = `
-                    <div class="w-10 h-10 rounded-xl flex items-center justify-center ${isAcquired ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'}">
-                        <i data-lucide="package" class="w-5 h-5"></i>
-                    </div>
-                    <div class="flex-1">
-                        <h4 class="text-sm font-bold leading-tight">${item.name}</h4>
-                        <p class="text-[10px] text-slate-500">${item.model}</p>
-                    </div>
-                    <div class="flex flex-col items-end gap-1">
-                        <span class="text-[10px] font-black text-blue-600">${item.price}€</span>
-                        <button class="gear-toggle text-[9px] font-black px-2 py-1 rounded-lg uppercase tracking-tighter ${isAcquired ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600'}" data-id="${item.id}" data-status="${currentStatus}">
-                            ${currentStatus}
-                        </button>
-                    </div>
-                `;
-                container.appendChild(div);
-            });
-            lucide.createIcons();
-
-            document.querySelectorAll('.gear-toggle').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    const newStatus = btn.dataset.status === 'Acquis' ? 'A acheter' : 'Acquis';
-                    toggleGear(btn.dataset.id, newStatus);
-                });
-            });
         }
 
         // Expose functions to global scope for HTML onclick
