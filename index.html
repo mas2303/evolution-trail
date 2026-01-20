@@ -46,8 +46,10 @@
                 <h1 class="text-2xl font-black italic tracking-tighter uppercase">Road to <span class="text-blue-600">GT85</span></h1>
                 <p class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Base de Données Active</p>
             </div>
-            <!-- Indicateur de statut -->
-            <div id="status-indicator" class="w-3 h-3 rounded-full bg-orange-500 shadow-md animate-pulse" title="Statut Connexion"></div>
+            <!-- Bouton Réglages / Synchro -->
+            <button onclick="openSettings()" class="bg-slate-100 p-2 rounded-full text-slate-600 hover:bg-slate-200 transition-colors">
+                <i data-lucide="settings" class="w-5 h-5"></i>
+            </button>
         </div>
     </header>
 
@@ -171,6 +173,30 @@
         </button>
     </nav>
 
+    <!-- Modal Réglages / Synchro -->
+    <div id="settings-modal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl">
+            <h3 class="text-xl font-black mb-4">Synchronisation</h3>
+            <p class="text-sm text-slate-500 mb-4">Pour voir tes données sur un autre appareil, copie cet identifiant :</p>
+            
+            <div class="bg-slate-100 p-3 rounded-xl mb-4 flex items-center gap-2">
+                <code id="current-user-id" class="flex-1 font-mono text-xs font-bold text-slate-700 break-all">...</code>
+                <button onclick="copyId()" class="text-blue-600"><i data-lucide="copy" class="w-4 h-4"></i></button>
+            </div>
+
+            <hr class="border-slate-100 my-4">
+            
+            <p class="text-sm text-slate-500 mb-2">Ou colle un identifiant existant ici :</p>
+            <form onsubmit="saveNewId(event)">
+                <input type="text" name="newId" placeholder="Coller l'ID ici..." class="w-full bg-slate-50 p-3 rounded-xl text-sm font-bold border border-slate-200 mb-4 outline-none focus:border-blue-500">
+                <div class="flex gap-2">
+                    <button type="button" onclick="closeSettings()" class="flex-1 bg-slate-100 text-slate-600 font-bold py-3 rounded-xl">Fermer</button>
+                    <button type="submit" class="flex-1 bg-blue-600 text-white font-bold py-3 rounded-xl">Charger</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Modal Ajout Séance -->
     <div id="add-modal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm hidden flex items-end sm:items-center justify-center p-4">
         <div class="bg-white w-full max-w-md rounded-3xl p-6 shadow-2xl animate-[fadeIn_0.3s_ease-out]">
@@ -195,7 +221,6 @@
                         </select>
                     </div>
                 </div>
-                <!-- Nouvelle ligne pour KM et D+ -->
                 <div class="grid grid-cols-2 gap-4">
                     <div class="space-y-1">
                         <label class="text-[10px] font-bold uppercase text-slate-400">Dist. (km)</label>
@@ -206,7 +231,6 @@
                         <input name="dPlus" type="number" placeholder="0" class="w-full bg-slate-50 p-3 rounded-xl text-sm font-bold border border-slate-100 outline-none focus:border-blue-500">
                     </div>
                 </div>
-                <!-- Nouvelle ligne pour Durée, FC Moy, RPE -->
                 <div class="grid grid-cols-3 gap-3">
                     <div class="space-y-1">
                         <label class="text-[10px] font-bold uppercase text-slate-400">Durée</label>
@@ -285,7 +309,10 @@
             try {
                 app = initializeApp(firebaseConfig);
                 db = getFirestore(app);
-                userId = getDeviceId(); // On utilise l'ID généré localement
+                userId = getDeviceId(); 
+
+                // Mise à jour de l'affichage de l'ID dans les réglages
+                document.getElementById('current-user-id').innerText = userId;
 
                 // On lance la connexion
                 console.log("Démarrage avec ID :", userId);
@@ -300,22 +327,15 @@
         // --- Logique Application ---
 
         function initDataListeners() {
-            const statusIndicator = document.getElementById('status-indicator');
-
             // 1. Écouteur Sessions
             const qSessions = query(collection(db, `users/${userId}/sessions`), orderBy("date", "desc"));
             onSnapshot(qSessions, (snapshot) => {
-                // Si on reçoit des données, c'est que ça marche !
                 document.getElementById('loading').style.display = 'none';
-                statusIndicator.classList.remove('bg-orange-500', 'animate-pulse');
-                statusIndicator.classList.add('bg-green-500');
-
                 const sessions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 renderSessions(sessions);
                 calculateStats(sessions);
             }, (error) => {
                 console.error("Erreur Droits:", error);
-                statusIndicator.classList.add('bg-red-500');
                 if(error.code === 'permission-denied') {
                     alert("ERREUR : Tu n'as pas changé les Règles dans Firestore ! Mets 'allow read, write: if true;'");
                 }
@@ -383,6 +403,28 @@
              });
         }
 
+        // --- Fonctions de Réglages ---
+        window.openSettings = () => {
+            document.getElementById('settings-modal').classList.remove('hidden');
+        }
+        window.closeSettings = () => {
+            document.getElementById('settings-modal').classList.add('hidden');
+        }
+        window.copyId = () => {
+            const id = document.getElementById('current-user-id').innerText;
+            navigator.clipboard.writeText(id).then(() => alert('ID copié !'));
+        }
+        window.saveNewId = (e) => {
+            e.preventDefault();
+            const newId = e.target.newId.value.trim();
+            if(newId) {
+                if(confirm("Attention : Cela va charger les données de cet identifiant. Continuer ?")) {
+                    localStorage.setItem('gt85_device_id', newId);
+                    window.location.reload();
+                }
+            }
+        }
+
         // --- Rendu HTML ---
         
         function renderSessions(sessions) {
@@ -431,8 +473,7 @@
 
             // Stats Hebdomadaires
             const now = new Date();
-            // Trouver le lundi de cette semaine (start of current week)
-            const dayOfWeek = now.getDay(); // 0 (Sun) - 6 (Sat)
+            const dayOfWeek = now.getDay(); 
             const distToMonday = (dayOfWeek + 6) % 7; 
             const thisMonday = new Date(now);
             thisMonday.setDate(now.getDate() - distToMonday);
@@ -448,8 +489,7 @@
             let lastWeekKm = 0, lastWeekDplus = 0;
 
             sessions.forEach(s => {
-                const parts = s.date.split('-'); // YYYY-MM-DD
-                // Créer la date locale à minuit pour comparaison fiable
+                const parts = s.date.split('-');
                 const sDate = new Date(parts[0], parts[1]-1, parts[2]); 
                 
                 if (sDate >= thisMonday && sDate < nextMonday) {
