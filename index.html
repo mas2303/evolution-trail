@@ -76,18 +76,40 @@
                 </div>
             </div>
 
-            <!-- Progression Bar -->
-            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
-                <h3 class="font-bold text-slate-800 mb-4 flex items-center gap-2">
-                    <i data-lucide="calendar" class="w-4 h-4 text-blue-600"></i> Objectif GT85
-                </h3>
-                <div class="w-full bg-slate-100 rounded-full h-3 overflow-hidden">
-                    <div id="progression-bar" class="bg-blue-600 h-full transition-all duration-1000" style="width: 0%"></div>
+            <!-- Résumés Hebdomadaires -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <!-- Semaine Dernière -->
+                <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
+                    <h3 class="font-bold text-slate-800 mb-2 flex items-center gap-2 text-xs uppercase text-slate-400 tracking-wider">
+                        <i data-lucide="calendar-check-2" class="w-4 h-4"></i> Semaine Dernière
+                    </h3>
+                    <div class="flex justify-between items-end">
+                        <div>
+                            <span class="text-3xl font-black text-slate-800" id="last-week-km">0</span>
+                            <span class="text-xs font-bold text-slate-400">km</span>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-xl font-bold text-emerald-600" id="last-week-dplus">0</span>
+                            <span class="text-[10px] font-bold text-slate-400 uppercase">m D+</span>
+                        </div>
+                    </div>
                 </div>
-                <div class="flex justify-between mt-2 text-xs font-bold text-slate-400">
-                    <span>0 km</span>
-                    <span id="progression-text">0%</span>
-                    <span>500 km (Cycle)</span>
+
+                <!-- Semaine En Cours -->
+                <div class="bg-blue-600 p-4 rounded-2xl shadow-lg shadow-blue-200">
+                    <h3 class="font-bold text-blue-100 mb-2 flex items-center gap-2 text-xs uppercase tracking-wider">
+                        <i data-lucide="calendar-clock" class="w-4 h-4"></i> Semaine en cours
+                    </h3>
+                    <div class="flex justify-between items-end text-white">
+                        <div>
+                            <span class="text-3xl font-black" id="current-week-km">0</span>
+                            <span class="text-xs font-bold text-blue-200">km</span>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-xl font-bold" id="current-week-dplus">0</span>
+                            <span class="text-[10px] font-bold text-blue-200 uppercase">m D+</span>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -396,17 +418,53 @@
         }
 
         function calculateStats(sessions) {
+            // Stats globales
             const totalKm = sessions.reduce((acc, s) => acc + (parseFloat(s.km) || 0), 0);
             const totalDPlus = sessions.reduce((acc, s) => acc + (parseInt(s.dPlus) || 0), 0);
             const avgRPE = sessions.length ? (sessions.reduce((acc, s) => acc + (parseInt(s.rpe) || 0), 0) / sessions.length).toFixed(1) : 0;
             const ppgCount = sessions.filter(s => s.ppg).length;
+            
             document.getElementById('stat-km').innerText = totalKm.toFixed(1);
             document.getElementById('stat-dplus').innerText = totalDPlus;
             document.getElementById('stat-rpe').innerText = avgRPE;
             document.getElementById('stat-ppg').innerText = ppgCount;
-            const progress = Math.min(100, (totalKm / 500) * 100);
-            document.getElementById('progression-bar').style.width = `${progress}%`;
-            document.getElementById('progression-text').innerText = `${progress.toFixed(0)}%`;
+
+            // Stats Hebdomadaires
+            const now = new Date();
+            // Trouver le lundi de cette semaine (start of current week)
+            const dayOfWeek = now.getDay(); // 0 (Sun) - 6 (Sat)
+            const distToMonday = (dayOfWeek + 6) % 7; 
+            const thisMonday = new Date(now);
+            thisMonday.setDate(now.getDate() - distToMonday);
+            thisMonday.setHours(0,0,0,0);
+
+            const nextMonday = new Date(thisMonday);
+            nextMonday.setDate(thisMonday.getDate() + 7);
+
+            const lastMonday = new Date(thisMonday);
+            lastMonday.setDate(thisMonday.getDate() - 7);
+
+            let currentWeekKm = 0, currentWeekDplus = 0;
+            let lastWeekKm = 0, lastWeekDplus = 0;
+
+            sessions.forEach(s => {
+                const parts = s.date.split('-'); // YYYY-MM-DD
+                // Créer la date locale à minuit pour comparaison fiable
+                const sDate = new Date(parts[0], parts[1]-1, parts[2]); 
+                
+                if (sDate >= thisMonday && sDate < nextMonday) {
+                    currentWeekKm += (parseFloat(s.km) || 0);
+                    currentWeekDplus += (parseInt(s.dPlus) || 0);
+                } else if (sDate >= lastMonday && sDate < thisMonday) {
+                    lastWeekKm += (parseFloat(s.km) || 0);
+                    lastWeekDplus += (parseInt(s.dPlus) || 0);
+                }
+            });
+
+            document.getElementById('current-week-km').innerText = currentWeekKm.toFixed(1);
+            document.getElementById('current-week-dplus').innerText = currentWeekDplus;
+            document.getElementById('last-week-km').innerText = lastWeekKm.toFixed(1);
+            document.getElementById('last-week-dplus').innerText = lastWeekDplus;
         }
 
         function renderPPG(statusMap) {
