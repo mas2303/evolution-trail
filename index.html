@@ -26,7 +26,7 @@
         .time-input { text-align: center; padding-left: 0.5rem; padding-right: 0.5rem; }
         
         /* Styles Calendrier Compact */
-        .calendar-container { max-width: 260px; margin: 0 auto; } /* Largeur contrainte */
+        .calendar-container { max-width: 260px; margin: 0 auto; }
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
         .calendar-day { 
             aspect-ratio: 1; 
@@ -41,8 +41,8 @@
             position: relative; 
         }
         .calendar-day.active { color: white; }
-        .calendar-day.has-run { background-color: #3b82f6; color: white; } /* Default blue */
-        .calendar-day.today { border: 1.5px solid #ef4444; color: #ef4444; } /* Red border for today */
+        .calendar-day.has-run { background-color: #3b82f6; color: white; }
+        .calendar-day.today { border: 1.5px solid #ef4444; color: #ef4444; }
         .calendar-day.today.has-run { color: white; border: 1.5px solid white; }
     </style>
 </head>
@@ -56,195 +56,225 @@
         </div>
     </div>
 
-    <!-- En-tête -->
-    <header class="px-6 pt-8 pb-4 bg-white shadow-sm sticky top-0 z-30">
-        <div class="flex justify-between items-center">
-            <div>
-                <h1 class="text-2xl font-black italic tracking-tighter uppercase">Road to <span class="text-blue-600">GT85</span></h1>
-                <div class="flex items-center gap-2">
-                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">v3.13 Layout</span>
-                    <span id="header-user-id" class="text-[9px] bg-slate-100 px-1 rounded text-slate-400 font-mono">ID: ...</span>
+    <!-- ZONE D'AUTHENTIFICATION (Visible si non connecté) -->
+    <div id="auth-container" class="hidden min-h-screen fixed inset-0 z-40 bg-slate-50 flex items-center justify-center p-6">
+        <div class="bg-white w-full max-w-sm rounded-3xl p-8 shadow-2xl">
+            <h1 class="text-3xl font-black italic mb-2 text-center">ROAD TO <span class="text-blue-600">GT85</span></h1>
+            <p class="text-center text-slate-400 text-sm mb-8 font-bold uppercase tracking-widest">Espace Athlète</p>
+            
+            <form id="auth-form" class="space-y-4">
+                <div>
+                    <label class="text-[10px] font-bold uppercase text-slate-400 ml-1">Email</label>
+                    <input type="email" id="auth-email" required class="w-full bg-slate-50 p-3 rounded-xl text-sm font-bold border border-slate-100 outline-none focus:border-blue-500">
                 </div>
-            </div>
-            <button onclick="openSettings()" class="bg-slate-100 p-2 rounded-full text-slate-600 hover:bg-slate-200 transition-colors relative">
-                <i data-lucide="settings" class="w-5 h-5"></i>
-                <div id="status-indicator" class="absolute top-0 right-0 w-2.5 h-2.5 rounded-full bg-orange-500 border-2 border-white"></div>
-            </button>
+                <div>
+                    <label class="text-[10px] font-bold uppercase text-slate-400 ml-1">Mot de passe</label>
+                    <input type="password" id="auth-password" required class="w-full bg-slate-50 p-3 rounded-xl text-sm font-bold border border-slate-100 outline-none focus:border-blue-500">
+                </div>
+                <p id="auth-error" class="text-red-500 text-xs font-bold text-center hidden"></p>
+                
+                <button type="submit" id="btn-login-submit" class="w-full bg-blue-600 text-white font-black py-4 rounded-2xl shadow-xl shadow-blue-500/20 active:scale-95 transition-all">
+                    SE CONNECTER
+                </button>
+                <button type="button" id="btn-register-switch" onclick="handleRegister()" class="w-full bg-white text-slate-500 font-bold py-3 rounded-xl border border-slate-200 hover:bg-slate-50">
+                    Créer un compte
+                </button>
+            </form>
         </div>
-    </header>
+    </div>
 
-    <!-- Contenu Principal -->
-    <main class="px-4 mt-4">
+    <!-- APPLICATION PRINCIPALE (Visible si connecté) -->
+    <div id="app-container" class="hidden">
         
-        <!-- DASHBOARD TAB -->
-        <div id="tab-dashboard" class="tab-content active space-y-6">
-            <!-- Stats Cards -->
-            <div class="grid grid-cols-2 gap-3">
-                <div class="bg-blue-50 p-4 rounded-2xl border border-blue-100">
-                    <p class="text-[10px] text-blue-600 font-bold uppercase">Distance</p>
-                    <p class="text-2xl font-black text-blue-900"><span id="stat-km">0</span> <span class="text-xs">km</span></p>
-                </div>
-                <div class="bg-emerald-50 p-4 rounded-2xl border border-emerald-100">
-                    <p class="text-[10px] text-emerald-600 font-bold uppercase">Dénivelé</p>
-                    <p class="text-2xl font-black text-emerald-900"><span id="stat-dplus">0</span> <span class="text-xs">m</span></p>
-                </div>
-            </div>
-
-            <!-- Graphique d'Évolution -->
-            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
-                <h3 class="font-bold text-slate-800 mb-4 flex items-center gap-2 text-xs uppercase tracking-wider">
-                    <i data-lucide="trending-up" class="w-4 h-4 text-blue-600"></i> Progression Hebdo
-                </h3>
-                <div class="h-48 w-full">
-                    <canvas id="weeklyChart"></canvas>
-                </div>
-            </div>
-
-            <!-- Comparatif Semaines -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 relative overflow-hidden">
-                    <div class="absolute top-0 right-0 p-3 opacity-10">
-                        <i data-lucide="calendar-check-2" class="w-12 h-12 text-slate-800"></i>
-                    </div>
-                    <h3 class="font-bold text-slate-500 mb-2 flex items-center gap-2 text-xs uppercase tracking-wider relative z-10">Semaine Dernière</h3>
-                    <div class="flex justify-between items-end relative z-10">
-                        <div><span class="text-2xl font-black text-slate-800" id="last-week-km">0</span><span class="text-xs font-bold text-slate-400">km</span></div>
-                        <div class="text-right pr-2"><span class="text-lg font-bold text-emerald-600" id="last-week-dplus">0</span><span class="text-[10px] font-bold text-slate-400 uppercase">m D+</span></div>
-                    </div>
-                </div>
-                <div class="bg-blue-600 p-4 rounded-2xl shadow-lg shadow-blue-200 relative overflow-hidden">
-                    <div class="absolute top-0 right-0 p-3 opacity-10"><i data-lucide="calendar-clock" class="w-12 h-12 text-white"></i></div>
-                    <h3 class="font-bold text-blue-100 mb-2 flex items-center gap-2 text-xs uppercase tracking-wider relative z-10">Semaine en cours</h3>
-                    <div class="flex justify-between items-end text-white relative z-10">
-                        <div><span class="text-3xl font-black" id="current-week-km">0</span><span class="text-xs font-bold text-blue-200">km</span></div>
-                        <div class="text-right pr-2"><span class="text-xl font-bold" id="current-week-dplus">0</span><span class="text-[10px] font-bold text-blue-200 uppercase">m D+</span></div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- CALENDRIER VISUEL COMPACT (DÉPLACÉ ICI) -->
-            <div class="bg-white p-4 rounded-3xl shadow-sm border border-slate-100">
-                <div class="flex justify-between items-center mb-2">
-                    <h3 class="font-bold text-slate-800 flex items-center gap-2 text-xs uppercase tracking-wider">
-                        <i data-lucide="calendar" class="w-4 h-4 text-blue-600"></i> Activité
-                    </h3>
+        <!-- En-tête -->
+        <header class="px-6 pt-8 pb-4 bg-white shadow-sm sticky top-0 z-30">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h1 class="text-2xl font-black italic tracking-tighter uppercase">Road to <span class="text-blue-600">GT85</span></h1>
                     <div class="flex items-center gap-2">
-                        <button onclick="changeMonth(-1)" class="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-600"><i data-lucide="chevron-left" class="w-3 h-3"></i></button>
-                        <span id="calendar-month-year" class="text-[10px] font-black uppercase text-slate-700 w-16 text-center">JAN 2025</span>
-                        <button onclick="changeMonth(1)" class="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-600"><i data-lucide="chevron-right" class="w-3 h-3"></i></button>
+                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">v4.0 Auth</span>
+                        <span class="text-[9px] bg-emerald-100 text-emerald-600 px-2 rounded-full font-bold uppercase">Connecté</span>
                     </div>
                 </div>
-                
-                <div class="calendar-container">
-                    <!-- Jours de la semaine -->
-                    <div class="grid grid-cols-7 gap-1 mb-1 text-center">
-                        <div class="text-[8px] font-bold text-slate-300 uppercase">L</div>
-                        <div class="text-[8px] font-bold text-slate-300 uppercase">M</div>
-                        <div class="text-[8px] font-bold text-slate-300 uppercase">M</div>
-                        <div class="text-[8px] font-bold text-slate-300 uppercase">J</div>
-                        <div class="text-[8px] font-bold text-slate-300 uppercase">V</div>
-                        <div class="text-[8px] font-bold text-slate-300 uppercase">S</div>
-                        <div class="text-[8px] font-bold text-slate-300 uppercase">D</div>
-                    </div>
-                    
-                    <!-- Grille des jours -->
-                    <div id="calendar-days" class="calendar-grid">
-                        <!-- Généré par JS -->
-                    </div>
-                </div>
-                
-                <div class="flex justify-center gap-3 mt-3 border-t border-slate-50 pt-2">
-                    <div class="flex items-center gap-1"><div class="w-1.5 h-1.5 rounded-full bg-blue-300"></div><span class="text-[8px] text-slate-400 uppercase font-bold">Court</span></div>
-                    <div class="flex items-center gap-1"><div class="w-1.5 h-1.5 rounded-full bg-blue-600"></div><span class="text-[8px] text-slate-400 uppercase font-bold">Long</span></div>
-                    <div class="flex items-center gap-1"><div class="w-1.5 h-1.5 rounded-full bg-[#1e3a8a]"></div><span class="text-[8px] text-slate-400 uppercase font-bold">Ultra</span></div>
-                </div>
-            </div>
-        </div>
-
-        <!-- JOURNAL TAB -->
-        <div id="tab-journal" class="tab-content space-y-4">
-            <div class="flex justify-between items-center px-1">
-                <h2 class="text-xl font-black text-slate-800">Séances</h2>
-                <button onclick="openModal()" class="bg-blue-600 text-white p-2 rounded-full shadow-lg active:scale-95 transition-transform">
-                    <i data-lucide="plus" class="w-6 h-6"></i>
+                <button onclick="openSettings()" class="bg-slate-100 p-2 rounded-full text-slate-600 hover:bg-slate-200 transition-colors relative">
+                    <i data-lucide="settings" class="w-5 h-5"></i>
                 </button>
             </div>
-            <div id="sessions-list" class="space-y-3 pb-20">
-                <p class="text-center text-slate-400 py-10 italic">Chargement...</p>
-            </div>
-        </div>
+        </header>
 
-        <!-- PPG TAB -->
-        <div id="tab-ppg" class="tab-content space-y-4">
-            <div class="bg-slate-900 p-6 rounded-3xl text-white shadow-xl relative overflow-hidden">
-                <div class="absolute right-[-20px] bottom-[-20px] opacity-10"><i data-lucide="shield" class="w-32 h-32"></i></div>
-                <h2 class="text-xl font-black mb-1">Programme "L'Armure"</h2>
-                <p class="text-xs text-slate-400">Renforcement spécifique Ultra-Trail.</p>
-            </div>
+        <!-- Contenu Principal -->
+        <main class="px-4 mt-4">
             
-            <!-- CHRONOMÈTRE INTÉGRÉ -->
-            <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 text-center">
-                <div class="text-4xl font-black text-slate-800 font-mono mb-4" id="chrono-display">00:00</div>
-                <div class="flex justify-center gap-4">
-                    <button onclick="toggleChrono()" id="chrono-btn" class="bg-blue-600 text-white w-14 h-14 rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-all">
-                        <i data-lucide="play" class="w-6 h-6 fill-current"></i>
-                    </button>
-                    <button onclick="resetChrono()" class="bg-slate-100 text-slate-500 w-14 h-14 rounded-full flex items-center justify-center hover:bg-slate-200 active:scale-95 transition-all">
-                        <i data-lucide="rotate-ccw" class="w-6 h-6"></i>
-                    </button>
-                </div>
-            </div>
-
-            <div id="ppg-list" class="space-y-3"></div>
-            <button onclick="resetPPG()" class="w-full py-3 text-xs font-bold text-slate-400 uppercase tracking-widest mt-4 active:bg-slate-200 rounded-xl transition-colors">Réinitialiser la séance</button>
-        </div>
-
-        <!-- MATOS TAB -->
-        <div id="tab-gear" class="tab-content space-y-3">
-            <!-- Simulateur de Sac V2 -->
-            <div class="bg-blue-600 p-5 rounded-3xl shadow-lg text-white mb-6 relative overflow-hidden transition-all duration-500">
-                <div class="absolute -right-6 -top-6 opacity-10 rotate-12"><i data-lucide="backpack" class="w-40 h-40 text-white"></i></div>
-                <h3 class="font-bold text-lg mb-4 flex items-center gap-2 relative z-10"><i data-lucide="calculator" class="w-5 h-5"></i> Pack Simulator</h3>
-                <div class="relative z-10">
-                    <div class="flex justify-between items-end mb-2"><label class="text-[10px] font-bold uppercase text-blue-200">Durée sortie</label><span id="sim-duration-display" class="font-black text-2xl">2h</span></div>
-                    <input type="range" id="sim-duration" min="1" max="10" step="0.5" value="2" class="w-full h-2 bg-blue-400 rounded-lg appearance-none cursor-pointer accent-white mb-6">
-                    <div class="flex gap-2 mb-4">
-                        <button onclick="setWeather('soleil')" id="btn-soleil" class="weather-btn flex-1 bg-blue-500/50 hover:bg-blue-500 p-2 rounded-xl text-xs font-bold flex flex-col items-center gap-1 transition-all border border-transparent"><i data-lucide="sun" class="w-5 h-5"></i> Soleil</button>
-                        <button onclick="setWeather('pluie')" id="btn-pluie" class="weather-btn flex-1 bg-blue-500/50 hover:bg-blue-500 p-2 rounded-xl text-xs font-bold flex flex-col items-center gap-1 transition-all border border-transparent"><i data-lucide="cloud-rain" class="w-5 h-5"></i> Pluie</button>
-                        <button onclick="setWeather('froid')" id="btn-froid" class="weather-btn flex-1 bg-blue-500/50 hover:bg-blue-500 p-2 rounded-xl text-xs font-bold flex flex-col items-center gap-1 transition-all border border-transparent"><i data-lucide="thermometer" class="w-5 h-5"></i> Froid</button>
+            <!-- DASHBOARD TAB -->
+            <div id="tab-dashboard" class="tab-content active space-y-6">
+                <!-- Stats Cards -->
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="bg-blue-50 p-4 rounded-2xl border border-blue-100">
+                        <p class="text-[10px] text-blue-600 font-bold uppercase">Distance</p>
+                        <p class="text-2xl font-black text-blue-900"><span id="stat-km">0</span> <span class="text-xs">km</span></p>
                     </div>
-                    <div class="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/20">
-                        <div class="flex justify-between items-center mb-3">
-                            <p class="text-[10px] text-blue-100 font-bold uppercase">Checklist (<span id="sim-weight-display">75</span>kg)</p>
-                            <button onclick="updateSim()" class="text-[10px] text-blue-200 hover:text-white uppercase font-bold flex items-center gap-1"><i data-lucide="rotate-ccw" class="w-3 h-3"></i> Reset</button>
+                    <div class="bg-emerald-50 p-4 rounded-2xl border border-emerald-100">
+                        <p class="text-[10px] text-emerald-600 font-bold uppercase">Dénivelé</p>
+                        <p class="text-2xl font-black text-emerald-900"><span id="stat-dplus">0</span> <span class="text-xs">m</span></p>
+                    </div>
+                </div>
+
+                <!-- Graphique d'Évolution -->
+                <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
+                    <h3 class="font-bold text-slate-800 mb-4 flex items-center gap-2 text-xs uppercase tracking-wider">
+                        <i data-lucide="trending-up" class="w-4 h-4 text-blue-600"></i> Progression Hebdo
+                    </h3>
+                    <div class="h-48 w-full">
+                        <canvas id="weeklyChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Comparatif Semaines -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 relative overflow-hidden">
+                        <div class="absolute top-0 right-0 p-3 opacity-10">
+                            <i data-lucide="calendar-check-2" class="w-12 h-12 text-slate-800"></i>
                         </div>
-                        <div id="sim-list" class="space-y-2"></div>
+                        <h3 class="font-bold text-slate-500 mb-2 flex items-center gap-2 text-xs uppercase tracking-wider relative z-10">Semaine Dernière</h3>
+                        <div class="flex justify-between items-end relative z-10">
+                            <div><span class="text-2xl font-black text-slate-800" id="last-week-km">0</span><span class="text-xs font-bold text-slate-400">km</span></div>
+                            <div class="text-right pr-2"><span class="text-lg font-bold text-emerald-600" id="last-week-dplus">0</span><span class="text-[10px] font-bold text-slate-400 uppercase">m D+</span></div>
+                        </div>
+                    </div>
+                    <div class="bg-blue-600 p-4 rounded-2xl shadow-lg shadow-blue-200 relative overflow-hidden">
+                        <div class="absolute top-0 right-0 p-3 opacity-10"><i data-lucide="calendar-clock" class="w-12 h-12 text-white"></i></div>
+                        <h3 class="font-bold text-blue-100 mb-2 flex items-center gap-2 text-xs uppercase tracking-wider relative z-10">Semaine en cours</h3>
+                        <div class="flex justify-between items-end text-white relative z-10">
+                            <div><span class="text-3xl font-black" id="current-week-km">0</span><span class="text-xs font-bold text-blue-200">km</span></div>
+                            <div class="text-right pr-2"><span class="text-xl font-bold" id="current-week-dplus">0</span><span class="text-[10px] font-bold text-blue-200 uppercase">m D+</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CALENDRIER VISUEL COMPACT -->
+                <div class="bg-white p-4 rounded-3xl shadow-sm border border-slate-100">
+                    <div class="flex justify-between items-center mb-2">
+                        <h3 class="font-bold text-slate-800 flex items-center gap-2 text-xs uppercase tracking-wider">
+                            <i data-lucide="calendar" class="w-4 h-4 text-blue-600"></i> Activité
+                        </h3>
+                        <div class="flex items-center gap-2">
+                            <button onclick="changeMonth(-1)" class="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-600"><i data-lucide="chevron-left" class="w-3 h-3"></i></button>
+                            <span id="calendar-month-year" class="text-[10px] font-black uppercase text-slate-700 w-16 text-center">JAN 2025</span>
+                            <button onclick="changeMonth(1)" class="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-600"><i data-lucide="chevron-right" class="w-3 h-3"></i></button>
+                        </div>
+                    </div>
+                    
+                    <div class="calendar-container">
+                        <!-- Jours de la semaine -->
+                        <div class="grid grid-cols-7 gap-1 mb-1 text-center">
+                            <div class="text-[8px] font-bold text-slate-300 uppercase">L</div>
+                            <div class="text-[8px] font-bold text-slate-300 uppercase">M</div>
+                            <div class="text-[8px] font-bold text-slate-300 uppercase">M</div>
+                            <div class="text-[8px] font-bold text-slate-300 uppercase">J</div>
+                            <div class="text-[8px] font-bold text-slate-300 uppercase">V</div>
+                            <div class="text-[8px] font-bold text-slate-300 uppercase">S</div>
+                            <div class="text-[8px] font-bold text-slate-300 uppercase">D</div>
+                        </div>
+                        
+                        <!-- Grille des jours -->
+                        <div id="calendar-days" class="calendar-grid">
+                            <!-- Généré par JS -->
+                        </div>
+                    </div>
+                    
+                    <div class="flex justify-center gap-3 mt-3 border-t border-slate-50 pt-2">
+                        <div class="flex items-center gap-1"><div class="w-1.5 h-1.5 rounded-full bg-blue-300"></div><span class="text-[8px] text-slate-400 uppercase font-bold">Court</span></div>
+                        <div class="flex items-center gap-1"><div class="w-1.5 h-1.5 rounded-full bg-blue-600"></div><span class="text-[8px] text-slate-400 uppercase font-bold">Long</span></div>
+                        <div class="flex items-center gap-1"><div class="w-1.5 h-1.5 rounded-full bg-[#1e3a8a]"></div><span class="text-[8px] text-slate-400 uppercase font-bold">Ultra</span></div>
                     </div>
                 </div>
             </div>
-        </div>
 
-    </main>
+            <!-- JOURNAL TAB -->
+            <div id="tab-journal" class="tab-content space-y-4">
+                <div class="flex justify-between items-center px-1">
+                    <h2 class="text-xl font-black text-slate-800">Séances</h2>
+                    <button onclick="openModal()" class="bg-blue-600 text-white p-2 rounded-full shadow-lg active:scale-95 transition-transform">
+                        <i data-lucide="plus" class="w-6 h-6"></i>
+                    </button>
+                </div>
+                <div id="sessions-list" class="space-y-3 pb-20">
+                    <p class="text-center text-slate-400 py-10 italic">Chargement...</p>
+                </div>
+            </div>
 
-    <!-- Navigation -->
-    <nav class="fixed bottom-6 left-6 right-6 bg-white/95 backdrop-blur-xl border border-slate-200 rounded-3xl shadow-2xl p-2 flex justify-around items-center z-40">
-        <button onclick="switchTab('dashboard')" class="nav-btn active flex-1 flex flex-col items-center py-2 text-blue-600 transition-colors">
-            <i data-lucide="trending-up" class="w-5 h-5"></i>
-            <span class="text-[9px] font-black uppercase mt-1">Stats</span>
-        </button>
-        <button onclick="switchTab('journal')" class="nav-btn flex-1 flex flex-col items-center py-2 text-slate-400 hover:text-slate-600 transition-colors">
-            <i data-lucide="activity" class="w-5 h-5"></i>
-            <span class="text-[9px] font-black uppercase mt-1">Journal</span>
-        </button>
-        <button onclick="switchTab('ppg')" class="nav-btn flex-1 flex flex-col items-center py-2 text-slate-400 hover:text-slate-600 transition-colors">
-            <i data-lucide="shield" class="w-5 h-5"></i>
-            <span class="text-[9px] font-black uppercase mt-1">PPG</span>
-        </button>
-        <button onclick="switchTab('gear')" class="nav-btn flex-1 flex flex-col items-center py-2 text-slate-400 hover:text-slate-600 transition-colors">
-            <i data-lucide="package" class="w-5 h-5"></i>
-            <span class="text-[9px] font-black uppercase mt-1">Matos</span>
-        </button>
-    </nav>
+            <!-- PPG TAB -->
+            <div id="tab-ppg" class="tab-content space-y-4">
+                <div class="bg-slate-900 p-6 rounded-3xl text-white shadow-xl relative overflow-hidden">
+                    <div class="absolute right-[-20px] bottom-[-20px] opacity-10"><i data-lucide="shield" class="w-32 h-32"></i></div>
+                    <h2 class="text-xl font-black mb-1">Programme "L'Armure"</h2>
+                    <p class="text-xs text-slate-400">Renforcement spécifique Ultra-Trail.</p>
+                </div>
+                
+                <!-- CHRONOMÈTRE -->
+                <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 text-center">
+                    <div class="text-4xl font-black text-slate-800 font-mono mb-4" id="chrono-display">00:00</div>
+                    <div class="flex justify-center gap-4">
+                        <button onclick="toggleChrono()" id="chrono-btn" class="bg-blue-600 text-white w-14 h-14 rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-all">
+                            <i data-lucide="play" class="w-6 h-6 fill-current"></i>
+                        </button>
+                        <button onclick="resetChrono()" class="bg-slate-100 text-slate-500 w-14 h-14 rounded-full flex items-center justify-center hover:bg-slate-200 active:scale-95 transition-all">
+                            <i data-lucide="rotate-ccw" class="w-6 h-6"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div id="ppg-list" class="space-y-3"></div>
+                <button onclick="resetPPG()" class="w-full py-3 text-xs font-bold text-slate-400 uppercase tracking-widest mt-4 active:bg-slate-200 rounded-xl transition-colors">Réinitialiser la séance</button>
+            </div>
+
+            <!-- MATOS TAB -->
+            <div id="tab-gear" class="tab-content space-y-3">
+                <!-- Simulateur de Sac V2 -->
+                <div class="bg-blue-600 p-5 rounded-3xl shadow-lg text-white mb-6 relative overflow-hidden transition-all duration-500">
+                    <div class="absolute -right-6 -top-6 opacity-10 rotate-12"><i data-lucide="backpack" class="w-40 h-40 text-white"></i></div>
+                    <h3 class="font-bold text-lg mb-4 flex items-center gap-2 relative z-10"><i data-lucide="calculator" class="w-5 h-5"></i> Pack Simulator</h3>
+                    <div class="relative z-10">
+                        <div class="flex justify-between items-end mb-2"><label class="text-[10px] font-bold uppercase text-blue-200">Durée sortie</label><span id="sim-duration-display" class="font-black text-2xl">2h</span></div>
+                        <input type="range" id="sim-duration" min="1" max="10" step="0.5" value="2" class="w-full h-2 bg-blue-400 rounded-lg appearance-none cursor-pointer accent-white mb-6">
+                        <div class="flex gap-2 mb-4">
+                            <button onclick="setWeather('soleil')" id="btn-soleil" class="weather-btn flex-1 bg-blue-500/50 hover:bg-blue-500 p-2 rounded-xl text-xs font-bold flex flex-col items-center gap-1 transition-all border border-transparent"><i data-lucide="sun" class="w-5 h-5"></i> Soleil</button>
+                            <button onclick="setWeather('pluie')" id="btn-pluie" class="weather-btn flex-1 bg-blue-500/50 hover:bg-blue-500 p-2 rounded-xl text-xs font-bold flex flex-col items-center gap-1 transition-all border border-transparent"><i data-lucide="cloud-rain" class="w-5 h-5"></i> Pluie</button>
+                            <button onclick="setWeather('froid')" id="btn-froid" class="weather-btn flex-1 bg-blue-500/50 hover:bg-blue-500 p-2 rounded-xl text-xs font-bold flex flex-col items-center gap-1 transition-all border border-transparent"><i data-lucide="thermometer" class="w-5 h-5"></i> Froid</button>
+                        </div>
+                        <div class="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/20">
+                            <div class="flex justify-between items-center mb-3">
+                                <p class="text-[10px] text-blue-100 font-bold uppercase">Checklist (<span id="sim-weight-display">75</span>kg)</p>
+                                <button onclick="updateSim()" class="text-[10px] text-blue-200 hover:text-white uppercase font-bold flex items-center gap-1"><i data-lucide="rotate-ccw" class="w-3 h-3"></i> Reset</button>
+                            </div>
+                            <div id="sim-list" class="space-y-2"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+
+        <!-- Navigation -->
+        <nav class="fixed bottom-6 left-6 right-6 bg-white/95 backdrop-blur-xl border border-slate-200 rounded-3xl shadow-2xl p-2 flex justify-around items-center z-40">
+            <button onclick="switchTab('dashboard')" class="nav-btn active flex-1 flex flex-col items-center py-2 text-blue-600 transition-colors">
+                <i data-lucide="trending-up" class="w-5 h-5"></i>
+                <span class="text-[9px] font-black uppercase mt-1">Stats</span>
+            </button>
+            <button onclick="switchTab('journal')" class="nav-btn flex-1 flex flex-col items-center py-2 text-slate-400 hover:text-slate-600 transition-colors">
+                <i data-lucide="activity" class="w-5 h-5"></i>
+                <span class="text-[9px] font-black uppercase mt-1">Journal</span>
+            </button>
+            <button onclick="switchTab('ppg')" class="nav-btn flex-1 flex flex-col items-center py-2 text-slate-400 hover:text-slate-600 transition-colors">
+                <i data-lucide="shield" class="w-5 h-5"></i>
+                <span class="text-[9px] font-black uppercase mt-1">PPG</span>
+            </button>
+            <button onclick="switchTab('gear')" class="nav-btn flex-1 flex flex-col items-center py-2 text-slate-400 hover:text-slate-600 transition-colors">
+                <i data-lucide="package" class="w-5 h-5"></i>
+                <span class="text-[9px] font-black uppercase mt-1">Matos</span>
+            </button>
+        </nav>
+    </div>
 
     <!-- Modal Réglages -->
     <div id="settings-modal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
@@ -258,19 +288,14 @@
                 </div>
                 <button onclick="saveProfile()" class="w-full mt-3 bg-slate-800 text-white py-2 rounded-lg text-xs font-bold uppercase">Sauvegarder Profil</button>
             </div>
+            
             <hr class="border-slate-100 my-4">
-            <h4 class="text-sm font-bold text-slate-800 mb-2">Synchronisation</h4>
-            <div class="bg-slate-100 p-3 rounded-xl mb-2 flex items-center gap-2">
-                <code id="current-user-id" class="flex-1 font-mono text-xs font-bold text-slate-700 break-all">...</code>
-                <button onclick="copyId()" class="text-blue-600"><i data-lucide="copy" class="w-4 h-4"></i></button>
-            </div>
-            <form onsubmit="saveNewId(event)" class="mt-2">
-                <input type="text" name="newId" placeholder="Coller l'ID ici..." class="w-full bg-white p-3 rounded-xl text-sm font-bold border border-slate-200 mb-2 outline-none focus:border-blue-500">
-                <div class="flex gap-2">
-                    <button type="button" onclick="closeSettings()" class="flex-1 bg-slate-100 text-slate-600 font-bold py-3 rounded-xl">Fermer</button>
-                    <button type="submit" class="flex-1 bg-blue-600 text-white font-bold py-3 rounded-xl">Charger Données</button>
-                </div>
-            </form>
+            
+            <button onclick="logout()" class="w-full bg-red-50 text-red-600 font-bold py-3 rounded-xl border border-red-100 hover:bg-red-100 flex items-center justify-center gap-2">
+                <i data-lucide="log-out" class="w-4 h-4"></i> Se déconnecter
+            </button>
+            
+            <button onclick="closeSettings()" class="w-full mt-2 text-slate-400 font-bold py-3 rounded-xl hover:bg-slate-50">Fermer</button>
         </div>
     </div>
 
@@ -319,6 +344,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getFirestore, collection, addDoc, query, onSnapshot, orderBy, deleteDoc, doc, updateDoc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
         // =========================================================================
         // 🔴 CONFIGURATION FIREBASE (TES CLÉS SONT ICI) 🔴
@@ -343,37 +369,39 @@
         ];
 
         // --- Initialisation ---
-        let app, db, userId;
+        let app, db, auth, userId;
         let weeklyChart = null;
-        let allSessionsData = []; // Pour le calendrier
+        let allSessionsData = []; 
         let currentCalendarDate = new Date();
-
-        function getDeviceId() {
-            let id = localStorage.getItem('gt85_device_id');
-            if (!id) {
-                id = 'user_' + Math.random().toString(36).substr(2, 9) + Date.now();
-                localStorage.setItem('gt85_device_id', id);
-            }
-            return id;
-        }
-
-        // Démarrage auto
-        initApp();
 
         function initApp() {
             try {
                 app = initializeApp(firebaseConfig);
                 db = getFirestore(app);
-                userId = getDeviceId(); 
+                auth = getAuth(app);
 
-                document.getElementById('current-user-id').innerText = userId;
-                document.getElementById('header-user-id').innerText = "ID: " + userId.substring(0,8) + "...";
-                
-                // Charger le profil local si dispo
-                document.getElementById('user-weight').value = localStorage.getItem('gt85_weight') || '';
-                document.getElementById('user-height').value = localStorage.getItem('gt85_height') || '';
-
-                initDataListeners();
+                // Observer l'état de connexion
+                onAuthStateChanged(auth, (user) => {
+                    document.getElementById('loading').style.display = 'none';
+                    
+                    if (user) {
+                        // User connecté
+                        userId = user.uid;
+                        document.getElementById('auth-container').classList.add('hidden');
+                        document.getElementById('app-container').classList.remove('hidden');
+                        
+                        // Charger profil local
+                        document.getElementById('user-weight').value = localStorage.getItem('gt85_weight') || '';
+                        document.getElementById('user-height').value = localStorage.getItem('gt85_height') || '';
+                        
+                        // Démarrer les écouteurs de données
+                        initDataListeners();
+                    } else {
+                        // User déconnecté
+                        document.getElementById('app-container').classList.add('hidden');
+                        document.getElementById('auth-container').classList.remove('hidden');
+                    }
+                });
 
             } catch (e) {
                 console.error("Erreur Init:", e);
@@ -381,27 +409,66 @@
             }
         }
 
+        // --- AUTHENTIFICATION ---
+        
+        window.handleLogin = async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('auth-email').value;
+            const password = document.getElementById('auth-password').value;
+            const errorMsg = document.getElementById('auth-error');
+            
+            try {
+                await signInWithEmailAndPassword(auth, email, password);
+                // Le onAuthStateChanged gérera la suite
+            } catch (error) {
+                errorMsg.innerText = "Erreur: " + error.message;
+                errorMsg.classList.remove('hidden');
+            }
+        }
+
+        window.handleRegister = async () => {
+            const email = document.getElementById('auth-email').value;
+            const password = document.getElementById('auth-password').value;
+            const errorMsg = document.getElementById('auth-error');
+
+            if(password.length < 6) {
+                errorMsg.innerText = "Le mot de passe doit faire 6 caractères min.";
+                errorMsg.classList.remove('hidden');
+                return;
+            }
+
+            try {
+                await createUserWithEmailAndPassword(auth, email, password);
+                // Le onAuthStateChanged gérera la suite
+            } catch (error) {
+                errorMsg.innerText = "Erreur création: " + error.message;
+                errorMsg.classList.remove('hidden');
+            }
+        }
+
+        window.logout = async () => {
+            if(confirm("Se déconnecter ?")) {
+                await signOut(auth);
+                window.location.reload();
+            }
+        }
+
+        document.getElementById('auth-form').addEventListener('submit', window.handleLogin);
+
         // --- Logique Application ---
 
         function initDataListeners() {
-            const statusIndicator = document.getElementById('status-indicator');
-
             const qSessions = query(collection(db, `users/${userId}/sessions`), orderBy("date", "desc"));
             onSnapshot(qSessions, (snapshot) => {
-                document.getElementById('loading').style.display = 'none';
-                statusIndicator.classList.remove('bg-orange-500', 'animate-pulse');
-                statusIndicator.classList.add('bg-green-500');
-
                 const sessions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                allSessionsData = sessions; // Store globally for calendar
+                allSessionsData = sessions;
                 
                 renderSessions(sessions);
                 calculateStats(sessions);
                 renderChart(sessions);
-                renderCalendar(); // Initial render
+                renderCalendar();
             }, (error) => {
-                console.error("Erreur:", error);
-                statusIndicator.classList.add('bg-red-500');
+                console.error("Erreur Data:", error);
             });
 
             const qPPG = collection(db, `users/${userId}/ppg_status`);
@@ -413,7 +480,6 @@
         }
 
         // --- Calendrier Logic ---
-        
         window.changeMonth = (delta) => {
             currentCalendarDate.setMonth(currentCalendarDate.getMonth() + delta);
             renderCalendar();
@@ -422,38 +488,25 @@
         function renderCalendar() {
             const container = document.getElementById('calendar-days');
             const monthLabel = document.getElementById('calendar-month-year');
-            
             if(!container) return;
             
             const year = currentCalendarDate.getFullYear();
             const month = currentCalendarDate.getMonth();
-            
-            // Format Month Label
             const monthNames = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
             monthLabel.innerText = `${monthNames[month]} ${year}`;
             
-            // Grid logic
             const firstDay = new Date(year, month, 1);
             const lastDay = new Date(year, month + 1, 0);
-            
-            // 0 = Sunday, 1 = Monday. We want Monday start.
             let startDayIndex = firstDay.getDay() - 1;
             if (startDayIndex === -1) startDayIndex = 6;
             
             const totalDays = lastDay.getDate();
-            const daysArray = [];
-            
-            // Padding
-            for(let i=0; i<startDayIndex; i++) daysArray.push(null);
-            // Days
-            for(let i=1; i<=totalDays; i++) daysArray.push(i);
-            
             container.innerHTML = '';
             
             const today = new Date();
             const isCurrentMonth = today.getFullYear() === year && today.getMonth() === month;
 
-            // Map sessions to dates
+            // Map sessions
             const sessionDates = {};
             allSessionsData.forEach(s => {
                 const sDate = new Date(s.date);
@@ -464,105 +517,43 @@
                 }
             });
 
-            daysArray.forEach(day => {
+            // Padding
+            for(let i=0; i<startDayIndex; i++) {
+                const cell = document.createElement('div');
+                cell.className = "calendar-day bg-transparent";
+                container.appendChild(cell);
+            }
+
+            // Days
+            for(let i=1; i<=totalDays; i++) {
                 const cell = document.createElement('div');
                 cell.className = "calendar-day bg-slate-50";
+                cell.innerText = i;
                 
-                if(day) {
-                    cell.innerText = day;
-                    
-                    // Highlight today
-                    if(isCurrentMonth && day === today.getDate()) {
-                        cell.classList.add('today');
-                    }
-                    
-                    // Highlight Active Days
-                    if(sessionDates[day]) {
-                        const dailySessions = sessionDates[day];
-                        const totalKm = dailySessions.reduce((acc, s) => acc + (s.km || 0), 0);
-                        
-                        cell.classList.add('has-run');
-                        // Opacity based on distance (visual heatmap)
-                        if(totalKm > 15) cell.style.backgroundColor = '#1e3a8a'; // Dark blue (Ultra)
-                        else if(totalKm > 8) cell.style.backgroundColor = '#2563eb'; // Medium blue (Long)
-                        else cell.style.backgroundColor = '#93c5fd'; // Light blue (Court)
-                    }
-                } else {
-                    cell.style.backgroundColor = 'transparent';
+                if(isCurrentMonth && i === today.getDate()) cell.classList.add('today');
+                
+                if(sessionDates[i]) {
+                    const totalKm = sessionDates[i].reduce((acc, s) => acc + (s.km || 0), 0);
+                    cell.classList.add('has-run');
+                    if(totalKm > 15) cell.style.backgroundColor = '#1e3a8a';
+                    else if(totalKm > 8) cell.style.backgroundColor = '#2563eb';
+                    else cell.style.backgroundColor = '#93c5fd';
                 }
                 container.appendChild(cell);
-            });
-        }
-
-        // --- Gestion du Chronomètre PPG ---
-        let chronoInterval;
-        let chronoTime = 0;
-        let chronoRunning = false;
-
-        window.toggleChrono = () => {
-            const btn = document.getElementById('chrono-btn');
-            
-            if (chronoRunning) {
-                // STOP
-                clearInterval(chronoInterval);
-                chronoRunning = false;
-                
-                // Mise à jour explicite de l'icône Play
-                btn.classList.remove('bg-amber-500');
-                btn.classList.add('bg-blue-600');
-                btn.innerHTML = '<i data-lucide="play" class="w-6 h-6 fill-current"></i>';
-            } else {
-                // START
-                chronoInterval = setInterval(() => {
-                    chronoTime++;
-                    updateChronoDisplay();
-                }, 1000);
-                chronoRunning = true;
-                
-                // Mise à jour explicite de l'icône Pause
-                btn.classList.remove('bg-blue-600');
-                btn.classList.add('bg-amber-500');
-                btn.innerHTML = '<i data-lucide="pause" class="w-6 h-6 fill-current"></i>';
             }
-            lucide.createIcons();
         }
 
-        window.resetChrono = () => {
-            clearInterval(chronoInterval);
-            chronoRunning = false;
-            chronoTime = 0;
-            updateChronoDisplay();
-            
-            const btn = document.getElementById('chrono-btn');
-            btn.classList.remove('bg-amber-500');
-            btn.classList.add('bg-blue-600');
-            btn.innerHTML = '<i data-lucide="play" class="w-6 h-6 fill-current"></i>';
-            
-            lucide.createIcons();
-        }
-
-        function updateChronoDisplay() {
-            const m = Math.floor(chronoTime / 60).toString().padStart(2, '0');
-            const s = (chronoTime % 60).toString().padStart(2, '0');
-            document.getElementById('chrono-display').innerText = `${m}:${s}`;
-        }
-
-        // --- Gestion des Séances (Ajout & Edition) ---
-
+        // --- Gestion des Séances ---
         async function handleSessionSubmit(e) {
             e.preventDefault();
             const formData = new FormData(e.target);
-            const sessionId = formData.get('id'); // Récupérer l'ID caché
+            const sessionId = formData.get('id');
 
-            // Reconstruction de la durée H:M:S
             const h = formData.get('dur_h') || '0';
             const m = (formData.get('dur_m') || '0').toString().padStart(2, '0');
             const s = (formData.get('dur_s') || '0').toString().padStart(2, '0');
             const formattedDuration = `${h}:${m}:${s}`;
-            
-            // Format d'affichage plus propre (virer 0:00:00)
-            const cleanDuration = formattedDuration === "0:00:00" ? "--:--" : 
-                                 (h === "0" ? `${m}:${s}` : formattedDuration);
+            const cleanDuration = formattedDuration === "0:00:00" ? "--:--" : (h === "0" ? `${m}:${s}` : formattedDuration);
 
             const sessionData = {
                 date: formData.get('date'),
@@ -578,17 +569,15 @@
 
             try {
                 if (sessionId) {
-                    // MODE MODIFICATION
                     await updateDoc(doc(db, `users/${userId}/sessions`, sessionId), sessionData);
                 } else {
-                    // MODE CRÉATION
                     await addDoc(collection(db, `users/${userId}/sessions`), sessionData);
                 }
                 closeModal();
                 e.target.reset();
             } catch (err) {
                 console.error("Erreur sauvegarde:", err);
-                alert("Erreur sauvegarde : " + err.message);
+                alert("Erreur: " + err.message);
             }
         }
 
@@ -598,18 +587,11 @@
             }
         }
 
-        // Nouvelle fonction pour charger une séance dans le modal
         window.editSession = async (id) => {
-            const docRef = doc(db, `users/${userId}/sessions`, id);
-            const docSnap = await getDoc(docRef);
-
+            const docSnap = await getDoc(doc(db, `users/${userId}/sessions`, id));
             if (docSnap.exists()) {
                 const data = docSnap.data();
-                
-                // Ouvrir le modal
-                openModal(true); // true = mode edit
-
-                // Remplir les champs
+                openModal(true);
                 document.getElementById('session-id').value = id;
                 document.getElementById('date-input').value = data.date;
                 document.getElementById('type-input').value = data.type;
@@ -619,7 +601,6 @@
                 document.getElementById('rpe-input').value = data.rpe;
                 document.getElementById('ppg-check').checked = data.ppg;
 
-                // Parsing de la durée (format possible: "1:30:00" ou "45:00" ou "--:--")
                 if(data.duration && data.duration !== "--:--") {
                     const parts = data.duration.split(':');
                     if(parts.length === 3) {
@@ -636,12 +617,10 @@
                     document.getElementById('dur-m').value = '';
                     document.getElementById('dur-s').value = '';
                 }
-
-            } else {
-                alert("Séance introuvable !");
             }
         }
 
+        // --- PPG / Chrono ---
         window.togglePPG = async (id, status) => {
             await setDoc(doc(db, `users/${userId}/ppg_status`, id), { done: status }, { merge: true });
         }
@@ -652,37 +631,56 @@
              });
         }
 
-        // --- Fonctions de Réglages ---
+        let chronoInterval;
+        let chronoTime = 0;
+        let chronoRunning = false;
+
+        window.toggleChrono = () => {
+            const btn = document.getElementById('chrono-btn');
+            if (chronoRunning) {
+                clearInterval(chronoInterval);
+                chronoRunning = false;
+                btn.classList.remove('bg-amber-500');
+                btn.classList.add('bg-blue-600');
+                btn.innerHTML = '<i data-lucide="play" class="w-6 h-6 fill-current"></i>';
+            } else {
+                chronoInterval = setInterval(() => {
+                    chronoTime++;
+                    const m = Math.floor(chronoTime / 60).toString().padStart(2, '0');
+                    const s = (chronoTime % 60).toString().padStart(2, '0');
+                    document.getElementById('chrono-display').innerText = `${m}:${s}`;
+                }, 1000);
+                chronoRunning = true;
+                btn.classList.remove('bg-blue-600');
+                btn.classList.add('bg-amber-500');
+                btn.innerHTML = '<i data-lucide="pause" class="w-6 h-6 fill-current"></i>';
+            }
+            lucide.createIcons();
+        }
+
+        window.resetChrono = () => {
+            clearInterval(chronoInterval);
+            chronoRunning = false;
+            chronoTime = 0;
+            document.getElementById('chrono-display').innerText = `00:00`;
+            const btn = document.getElementById('chrono-btn');
+            btn.classList.remove('bg-amber-500');
+            btn.classList.add('bg-blue-600');
+            btn.innerHTML = '<i data-lucide="play" class="w-6 h-6 fill-current"></i>';
+            lucide.createIcons();
+        }
+
+        // --- Helpers ---
         window.openSettings = () => { document.getElementById('settings-modal').classList.remove('hidden'); }
         window.closeSettings = () => { document.getElementById('settings-modal').classList.add('hidden'); }
-        window.copyId = () => { navigator.clipboard.writeText(userId).then(() => alert('ID copié !')); }
-        window.saveNewId = (e) => {
-            e.preventDefault();
-            const newId = e.target.newId.value.trim();
-            if(newId && confirm("Attention : Cela va charger les données de cet identifiant.")) {
-                localStorage.setItem('gt85_device_id', newId);
-                window.location.reload();
-            }
-        }
         window.saveProfile = () => {
             localStorage.setItem('gt85_weight', document.getElementById('user-weight').value);
             localStorage.setItem('gt85_height', document.getElementById('user-height').value);
-            alert("Profil sauvegardé ! Les zones cardiaques seront adaptées.");
+            alert("Profil sauvegardé !");
             window.location.reload();
         }
 
-        // --- Logique Couleurs FC ---
-        function getHrColorClass(bpm) {
-            if (!bpm || bpm === 0) return 'text-slate-400';
-            if (bpm < 130) return 'text-slate-500'; // Z1
-            if (bpm < 145) return 'text-emerald-500'; // Z2 (Cible)
-            if (bpm < 160) return 'text-yellow-500'; // Z3
-            if (bpm < 175) return 'text-orange-500'; // Z4
-            return 'text-red-500'; // Z5
-        }
-
-        // --- Rendu HTML ---
-        
+        // --- Render Functions ---
         function renderSessions(sessions) {
             const container = document.getElementById('sessions-list');
             container.innerHTML = '';
@@ -694,16 +692,14 @@
                 const ratio = s.km > 0 ? Math.round(s.dPlus / s.km) : 0;
                 let ratioColor = "text-slate-400";
                 if (ratio > 30) ratioColor = "text-blue-500";
-                if (ratio > 38) ratioColor = "text-emerald-600 font-black"; // Objectif GT85
+                if (ratio > 38) ratioColor = "text-emerald-600 font-black";
 
-                // --- Calcul de l'allure (Pace) ---
                 let pace = "--:--";
                 if (s.km > 0 && s.duration && s.duration !== "--:--") {
                     const parts = s.duration.split(':').map(Number);
                     let totalMin = 0;
                     if (parts.length === 3) totalMin = parts[0] * 60 + parts[1] + parts[2] / 60;
                     else if (parts.length === 2) totalMin = parts[0] + parts[1] / 60;
-                    
                     if (totalMin > 0) {
                         const minPerKm = totalMin / s.km;
                         const pMin = Math.floor(minPerKm);
@@ -712,7 +708,12 @@
                     }
                 }
 
-                const hrColor = getHrColorClass(s.avgHr);
+                let hrColor = 'text-slate-400';
+                if (s.avgHr < 130) hrColor = 'text-slate-500';
+                else if (s.avgHr < 145) hrColor = 'text-emerald-500';
+                else if (s.avgHr < 160) hrColor = 'text-yellow-500';
+                else if (s.avgHr < 175) hrColor = 'text-orange-500';
+                else if (s.avgHr >= 175) hrColor = 'text-red-500';
 
                 const div = document.createElement('div');
                 div.className = "bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between";
@@ -746,7 +747,6 @@
         function calculateStats(sessions) {
             const totalKm = sessions.reduce((acc, s) => acc + (parseFloat(s.km) || 0), 0);
             const totalDPlus = sessions.reduce((acc, s) => acc + (parseInt(s.dPlus) || 0), 0);
-            
             document.getElementById('stat-km').innerText = totalKm.toFixed(1);
             document.getElementById('stat-dplus').innerText = totalDPlus;
 
@@ -758,7 +758,6 @@
             thisMonday.setHours(0,0,0,0);
             const nextMonday = new Date(thisMonday);
             nextMonday.setDate(thisMonday.getDate() + 7);
-            
             const lastMonday = new Date(thisMonday);
             lastMonday.setDate(thisMonday.getDate() - 7);
 
@@ -768,7 +767,6 @@
             sessions.forEach(s => {
                 const parts = s.date.split('-');
                 const sDate = new Date(parts[0], parts[1]-1, parts[2]); 
-                
                 if (sDate >= thisMonday && sDate < nextMonday) {
                     currentWeekKm += (parseFloat(s.km) || 0);
                     currentWeekDplus += (parseInt(s.dPlus) || 0);
@@ -804,7 +802,6 @@
                 d.setHours(0,0,0,0);
                 const diffTime = d - startOfPlan;
                 const weekNum = Math.floor(diffTime / (1000 * 60 * 60 * 24 * 7)) + 1;
-                
                 if (weekNum > 0) {
                     const key = `S${weekNum}`;
                     if(!weeks[key]) weeks[key] = 0;
@@ -842,9 +839,7 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: false }
-                    },
+                    plugins: { legend: { display: false } },
                     scales: {
                         y: { beginAtZero: true, grid: { color: '#f1f5f9' }, ticks: { font: { size: 10 } } },
                         x: { grid: { display: false }, ticks: { font: { size: 10 } } }
@@ -856,7 +851,6 @@
         function renderPPG(statusMap) {
             const container = document.getElementById('ppg-list');
             container.innerHTML = '';
-            
             PPG_EXERCISES.forEach(ex => {
                 const isDone = statusMap[ex.id] === true;
                 const div = document.createElement('div');
@@ -876,98 +870,35 @@
             lucide.createIcons();
         }
 
-        // Expose functions to global scope for HTML onclick
-        document.getElementById('add-form').addEventListener('submit', handleSessionSubmit);
+        // --- Simulateur Sac ---
+        let currentSimWeather = 'soleil'; 
 
-    </script>
-
-    <!-- UI Scripts (Tabs & Modal) -->
-    <script>
-        function switchTab(tabId) {
-            // Hide all tabs
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('.nav-btn').forEach(el => {
-                el.classList.remove('text-blue-600', 'active');
-                el.classList.add('text-slate-400');
-            });
-
-            // Show selected
-            document.getElementById('tab-' + tabId).classList.add('active');
-            
-            // Highlight nav
-            const activeBtn = document.querySelector(`button[onclick="switchTab('${tabId}')"]`);
-            if(activeBtn) {
-                activeBtn.classList.remove('text-slate-400');
-                activeBtn.classList.add('text-blue-600', 'active');
-            }
-        }
-
-        function openModal(isEdit = false) {
-            document.getElementById('add-modal').classList.remove('hidden');
-            
-            if(!isEdit) {
-                // RESET FORM POUR AJOUT
-                document.getElementById('add-form').reset();
-                document.getElementById('session-id').value = ""; // Vider l'ID
-                document.getElementById('modal-title').innerText = "Ajouter Séance";
-                document.getElementById('submit-btn').innerText = "ENREGISTRER";
-                document.getElementById('submit-btn').classList.remove('bg-emerald-600');
-                document.getElementById('submit-btn').classList.add('bg-blue-600');
-                
-                // Date par défaut aujourd'hui
-                document.getElementById('date-input').valueAsDate = new Date();
-            } else {
-                // MODE MODIF
-                document.getElementById('modal-title').innerText = "Modifier Séance";
-                document.getElementById('submit-btn').innerText = "METTRE À JOUR";
-                document.getElementById('submit-btn').classList.remove('bg-blue-600');
-                document.getElementById('submit-btn').classList.add('bg-emerald-600');
-            }
-        }
-
-        function closeModal() {
-            document.getElementById('add-modal').classList.add('hidden');
-        }
-        
-        // --- Simulateur Sac V2 ---
-        let currentSimWeather = 'soleil'; // Default
-
-        function setWeather(weather) {
+        window.setWeather = (weather) => {
             currentSimWeather = weather;
-            
-            // Update buttons visually
             document.querySelectorAll('.weather-btn').forEach(btn => {
                 btn.classList.remove('bg-white', 'text-blue-600', 'scale-105', 'shadow-lg');
                 btn.classList.add('bg-blue-500/50', 'text-white');
             });
-            
             const activeBtn = document.getElementById('btn-' + weather);
             activeBtn.classList.remove('bg-blue-500/50', 'text-white');
             activeBtn.classList.add('bg-white', 'text-blue-600', 'scale-105', 'shadow-lg');
-            
             updateSim();
         }
 
         function initSimulator() {
             const weight = parseFloat(localStorage.getItem('gt85_weight')) || 75;
             document.getElementById('sim-weight-display').innerText = weight;
-            
             const slider = document.getElementById('sim-duration');
             slider.addEventListener('input', updateSim);
-            
-            // Init with default
-            setWeather('soleil');
+            window.setWeather('soleil');
         }
 
-        function updateSim() {
+        window.updateSim = () => {
             const slider = document.getElementById('sim-duration');
             const h = parseFloat(slider.value);
             document.getElementById('sim-duration-display').innerText = h + 'h';
-            
             const weight = parseFloat(localStorage.getItem('gt85_weight')) || 75;
             const ratio = weight / 75;
-            
-            // Calc basics
             const water = (h * 0.5 * ratio).toFixed(1);
             const carbs = Math.round(h * 60 * ratio);
             
@@ -977,12 +908,10 @@
                 { name: 'Téléphone chargé', icon: 'smartphone' }
             ];
 
-            // Rules duration
             if (h >= 3) items.push({ name: 'Kit Survie (Sifflet/Couv.)', icon: 'shield-alert' });
             if (h >= 4) items.push({ name: 'Bâtons', icon: 'move-vertical' });
             if (h >= 5) items.push({ name: 'Frontale + Batterie', icon: 'flashlight' });
 
-            // Rules weather
             if (currentSimWeather === 'pluie') {
                 items.push({ name: 'Veste Membrane', icon: 'umbrella' });
                 items.push({ name: 'Casquette Pluie', icon: 'shield' });
@@ -1000,7 +929,6 @@
         function renderSimList(items) {
             const container = document.getElementById('sim-list');
             container.innerHTML = '';
-            
             items.forEach(item => {
                 const label = document.createElement('label');
                 label.className = "flex items-center gap-3 cursor-pointer group select-none bg-white/5 p-2 rounded-xl hover:bg-white/10 transition-colors";
@@ -1021,19 +949,46 @@
             lucide.createIcons();
         }
 
-        function resetSim() {
-            document.querySelectorAll('.sim-check').forEach(c => c.checked = false);
+        document.getElementById('add-form').addEventListener('submit', handleSessionSubmit);
+        document.addEventListener('DOMContentLoaded', () => {
+            initApp();
+            initSimulator();
+        });
+
+        // Tabs Logic
+        window.switchTab = (tabId) => {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(el => {
+                el.classList.remove('text-blue-600', 'active');
+                el.classList.add('text-slate-400');
+            });
+            document.getElementById('tab-' + tabId).classList.add('active');
+            const activeBtn = document.querySelector(`button[onclick="switchTab('${tabId}')"]`);
+            if(activeBtn) {
+                activeBtn.classList.remove('text-slate-400');
+                activeBtn.classList.add('text-blue-600', 'active');
+            }
         }
 
-        // Lancer au chargement
-        document.addEventListener('DOMContentLoaded', initSimulator);
-        
-        // Aussi recharger quand on sauvegarde le profil (Hack pour recharger les poids)
-        const oldSaveProfile = window.saveProfile;
-        window.saveProfile = () => {
-            oldSaveProfile(); 
-            location.reload();
-        };
+        // Modal Logic
+        window.openModal = (isEdit = false) => {
+            document.getElementById('add-modal').classList.remove('hidden');
+            if(!isEdit) {
+                document.getElementById('add-form').reset();
+                document.getElementById('session-id').value = "";
+                document.getElementById('modal-title').innerText = "Ajouter Séance";
+                document.getElementById('submit-btn').innerText = "ENREGISTRER";
+                document.getElementById('submit-btn').classList.remove('bg-emerald-600');
+                document.getElementById('submit-btn').classList.add('bg-blue-600');
+                document.getElementById('date-input').valueAsDate = new Date();
+            } else {
+                document.getElementById('modal-title').innerText = "Modifier Séance";
+                document.getElementById('submit-btn').innerText = "METTRE À JOUR";
+                document.getElementById('submit-btn').classList.remove('bg-blue-600');
+                document.getElementById('submit-btn').classList.add('bg-emerald-600');
+            }
+        }
+        window.closeModal = () => { document.getElementById('add-modal').classList.add('hidden'); }
 
         // Init Icons
         lucide.createIcons();
