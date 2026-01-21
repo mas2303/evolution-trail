@@ -100,7 +100,7 @@
                 <div>
                     <h1 class="text-2xl font-black italic tracking-tighter uppercase">Road to <span class="text-blue-600">GT85</span></h1>
                     <div class="flex items-center gap-2">
-                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">v4.3 Plan</span>
+                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">v4.4 WeightFix</span>
                         <span class="text-[9px] bg-emerald-100 text-emerald-600 px-2 rounded-full font-bold uppercase">Connecté</span>
                     </div>
                 </div>
@@ -248,11 +248,11 @@
                         <div class="bg-blue-50 p-4 rounded-xl border border-blue-100">
                             <h4 class="text-xs font-black uppercase text-blue-600 mb-2 tracking-widest">La Séance</h4>
                             <div class="flex gap-3 text-sm">
-                                <span class="font-bold text-slate-700 w-12">Lieu:</span>
+                                <span class="font-bold text-slate-700 w-12">Lieu :</span>
                                 <span class="text-slate-600">Côte de la Charmille</span>
                             </div>
                             <div class="flex gap-3 text-sm mt-1">
-                                <span class="font-bold text-slate-700 w-12">Action:</span>
+                                <span class="font-bold text-slate-700 w-12">Action :</span>
                                 <span class="text-slate-600">Navettes montées/descentes ou fentes. Travail de force.</span>
                             </div>
                         </div>
@@ -1029,7 +1029,15 @@
             const slider = document.getElementById('sim-duration');
             const h = parseFloat(slider.value);
             document.getElementById('sim-duration-display').innerText = h + 'h';
-            const weight = parseFloat(localStorage.getItem('gt85_weight')) || 75;
+            
+            // Recupere le poids stocké OU 75 par défaut
+            const storedWeight = localStorage.getItem('gt85_weight');
+            const weight = parseFloat(storedWeight) || 75;
+            
+            // Met à jour le texte du titre (ex: Checklist (82kg))
+            const weightDisplay = document.getElementById('sim-weight-display');
+            if(weightDisplay) weightDisplay.innerText = weight;
+
             const ratio = weight / 75;
             const water = (h * 0.5 * ratio).toFixed(1);
             const carbs = Math.round(h * 60 * ratio);
