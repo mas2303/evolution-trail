@@ -100,7 +100,7 @@
                 <div>
                     <h1 class="text-2xl font-black italic tracking-tighter uppercase">Road to <span class="text-blue-600">GT85</span></h1>
                     <div class="flex items-center gap-2">
-                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">v4.4 WeightFix</span>
+                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">v4.5 Accordion</span>
                         <span class="text-[9px] bg-emerald-100 text-emerald-600 px-2 rounded-full font-bold uppercase">Connecté</span>
                     </div>
                 </div>
@@ -197,8 +197,8 @@
                     <h2 class="text-xl font-black text-slate-800">Semaine Type</h2>
                 </div>
 
-                <!-- MARDI -->
-                <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+                <!-- MARDI (ACCORDÉON) -->
+                <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden cursor-pointer transition-all active:scale-[0.98]" onclick="toggleDetails('mardi')">
                     <div class="bg-slate-900 p-4 flex justify-between items-center text-white">
                         <div class="flex items-center gap-3">
                             <div class="bg-blue-600 p-2 rounded-lg"><i data-lucide="zap" class="w-5 h-5"></i></div>
@@ -207,10 +207,10 @@
                                 <p class="text-[10px] text-blue-200 uppercase font-bold tracking-wider">Vitesse & Côte</p>
                             </div>
                         </div>
-                        <i data-lucide="mountain" class="w-6 h-6 text-slate-700"></i>
+                        <i id="chevron-mardi" data-lucide="chevron-down" class="w-6 h-6 text-slate-400 transition-transform duration-300"></i>
                     </div>
                     
-                    <div class="p-5 space-y-6">
+                    <div id="details-mardi" class="hidden p-5 space-y-6 border-t border-slate-100">
                         <!-- Échauffement -->
                         <div>
                             <h4 class="text-xs font-black uppercase text-slate-400 mb-3 tracking-widest flex items-center gap-2">
@@ -809,6 +809,20 @@
             localStorage.setItem('gt85_height', document.getElementById('user-height').value);
             alert("Profil sauvegardé !");
             window.location.reload();
+        }
+
+        // --- UI Logic ---
+        window.toggleDetails = (id) => {
+            const el = document.getElementById('details-' + id);
+            const icon = document.getElementById('chevron-' + id);
+            
+            if (el.classList.contains('hidden')) {
+                el.classList.remove('hidden');
+                icon.style.transform = 'rotate(180deg)';
+            } else {
+                el.classList.add('hidden');
+                icon.style.transform = 'rotate(0deg)';
+            }
         }
 
         // --- Render Functions ---
