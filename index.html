@@ -100,7 +100,7 @@
                 <div>
                     <h1 class="text-2xl font-black italic tracking-tighter uppercase">Road to <span class="text-blue-600">GT85</span></h1>
                     <div class="flex items-center gap-2">
-                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">v4.5 Accordion</span>
+                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">v4.6 Ratio</span>
                         <span class="text-[9px] bg-emerald-100 text-emerald-600 px-2 rounded-full font-bold uppercase">Connecté</span>
                     </div>
                 </div>
@@ -149,12 +149,24 @@
                             <div class="text-right pr-2"><span class="text-lg font-bold text-emerald-600" id="last-week-dplus">0</span><span class="text-[10px] font-bold text-slate-400 uppercase">m D+</span></div>
                         </div>
                     </div>
+                    
+                    <!-- SEMAINE EN COURS (MODIFIÉE) -->
                     <div class="bg-blue-600 p-4 rounded-2xl shadow-lg shadow-blue-200 relative overflow-hidden">
                         <div class="absolute top-0 right-0 p-3 opacity-10"><i data-lucide="calendar-clock" class="w-12 h-12 text-white"></i></div>
                         <h3 class="font-bold text-blue-100 mb-2 flex items-center gap-2 text-xs uppercase tracking-wider relative z-10">Semaine en cours</h3>
-                        <div class="flex justify-between items-end text-white relative z-10">
+                        <div class="flex justify-between items-end text-white relative z-10 mb-2">
                             <div><span class="text-3xl font-black" id="current-week-km">0</span><span class="text-xs font-bold text-blue-200">km</span></div>
                             <div class="text-right pr-2"><span class="text-xl font-bold" id="current-week-dplus">0</span><span class="text-[10px] font-bold text-blue-200 uppercase">m D+</span></div>
+                        </div>
+                        <!-- NOUVEAU: INDICATEUR RATIO -->
+                        <div class="mt-3 pt-2 border-t border-blue-500/50 flex justify-between items-center relative z-10">
+                            <div class="text-white">
+                                <span class="text-[10px] font-bold text-blue-200 uppercase">Ratio</span>
+                                <span class="font-bold text-sm ml-1" id="current-week-ratio">0</span> <span class="text-[10px] text-blue-200">m/km</span>
+                            </div>
+                            <div id="current-week-mode" class="text-[9px] font-black uppercase bg-white/20 text-white px-2 py-1 rounded-lg backdrop-blur-sm">
+                                🚜 Plaine
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -930,6 +942,25 @@
             document.getElementById('current-week-dplus').innerText = currentWeekDplus;
             document.getElementById('last-week-km').innerText = lastWeekKm.toFixed(1);
             document.getElementById('last-week-dplus').innerText = lastWeekDplus;
+
+            // Ratio Calc
+            let ratio = 0;
+            if(currentWeekKm > 0) {
+                ratio = Math.round(currentWeekDplus / currentWeekKm);
+            }
+            document.getElementById('current-week-ratio').innerText = ratio;
+            
+            const modeEl = document.getElementById('current-week-mode');
+            if(ratio >= 40) {
+                modeEl.innerHTML = "⛰️ Montagne / GT85";
+                modeEl.className = "text-[9px] font-black uppercase bg-emerald-400/20 text-emerald-100 border border-emerald-400/50 px-2 py-1 rounded-lg backdrop-blur-sm";
+            } else if (ratio >= 20) {
+                modeEl.innerHTML = "🏃 Vallonné";
+                modeEl.className = "text-[9px] font-black uppercase bg-white/20 text-white px-2 py-1 rounded-lg backdrop-blur-sm";
+            } else {
+                modeEl.innerHTML = "🚜 Plaine";
+                modeEl.className = "text-[9px] font-black uppercase bg-blue-800/30 text-blue-200 px-2 py-1 rounded-lg backdrop-blur-sm";
+            }
         }
 
         function renderChart(sessions) {
