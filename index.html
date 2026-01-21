@@ -199,18 +199,22 @@
 
                 <!-- MARDI (ACCORDÉON) -->
                 <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden cursor-pointer transition-all active:scale-[0.98]" onclick="toggleDetails('mardi')">
-                    <div class="bg-slate-900 p-4 flex justify-between items-center text-white">
-                        <div class="flex items-center gap-3">
-                            <div class="bg-blue-600 p-2 rounded-lg"><i data-lucide="zap" class="w-5 h-5"></i></div>
+                    <!-- En-tête sur fond blanc (modifié) -->
+                    <div class="p-5 flex justify-between items-center">
+                        <div class="flex items-center gap-4">
+                            <div class="bg-blue-100 p-3 rounded-2xl text-blue-600">
+                                <i data-lucide="zap" class="w-6 h-6"></i>
+                            </div>
                             <div>
-                                <h3 class="font-black text-lg leading-none">MARDI</h3>
-                                <p class="text-[10px] text-blue-200 uppercase font-bold tracking-wider">Vitesse & Côte</p>
+                                <h3 class="font-black text-lg leading-none text-slate-800">MARDI</h3>
+                                <p class="text-[10px] text-blue-600 uppercase font-bold tracking-wider mb-1">Vitesse & Côte</p>
+                                <p class="text-xs text-slate-500">Séance clé. Échauffement complet requis.</p>
                             </div>
                         </div>
-                        <i id="chevron-mardi" data-lucide="chevron-down" class="w-6 h-6 text-slate-400 transition-transform duration-300"></i>
+                        <i id="chevron-mardi" data-lucide="chevron-down" class="w-5 h-5 text-slate-300 transition-transform duration-300"></i>
                     </div>
                     
-                    <div id="details-mardi" class="hidden p-5 space-y-6 border-t border-slate-100">
+                    <div id="details-mardi" class="hidden px-5 pb-5 space-y-6 border-t border-slate-50 pt-4">
                         <!-- Échauffement -->
                         <div>
                             <h4 class="text-xs font-black uppercase text-slate-400 mb-3 tracking-widest flex items-center gap-2">
