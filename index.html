@@ -165,7 +165,7 @@
                                 <span class="font-bold text-sm ml-1" id="current-week-ratio">0</span> <span class="text-[10px] text-blue-200">m/km</span>
                             </div>
                             <div id="current-week-mode" class="text-[9px] font-black uppercase bg-white/20 text-white px-2 py-1 rounded-lg backdrop-blur-sm">
-                                🚜 Plaine
+                            Plaine
                             </div>
                         </div>
                     </div>
@@ -952,13 +952,13 @@
             
             const modeEl = document.getElementById('current-week-mode');
             if(ratio >= 40) {
-                modeEl.innerHTML = "⛰️ Montagne / GT85";
+                modeEl.innerHTML = "Montagne / GT85";
                 modeEl.className = "text-[9px] font-black uppercase bg-emerald-400/20 text-emerald-100 border border-emerald-400/50 px-2 py-1 rounded-lg backdrop-blur-sm";
             } else if (ratio >= 20) {
-                modeEl.innerHTML = "🏃 Vallonné";
+                modeEl.innerHTML = "Vallonné";
                 modeEl.className = "text-[9px] font-black uppercase bg-white/20 text-white px-2 py-1 rounded-lg backdrop-blur-sm";
             } else {
-                modeEl.innerHTML = "🚜 Plaine";
+                modeEl.innerHTML = "Plaine";
                 modeEl.className = "text-[9px] font-black uppercase bg-blue-800/30 text-blue-200 px-2 py-1 rounded-lg backdrop-blur-sm";
             }
         }
